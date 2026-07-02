@@ -71,10 +71,12 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   `runs/analytics/0101_scratch.json` ($1606), `runs/analytics/0001_center.json` ($3194),
   `runs/analytics/0481_combo_half_wafer+donut.json` ($19064). Remaining Stage 5 work is the
   human report review/tuning gate.
-- **Stage 7 (FastAPI backend): plan written, not started** —
-  `docs/superpowers/plans/2026-07-02-stage7-fastapi.md`. Six tasks; see §8 below. **Stage 6
-  (monitoring) was deliberately skipped for now by user decision** — the spec's
-  `/api/monitor/*` endpoints are NOT in the Stage 7 plan; Stage 6 adds its own router later.
+- **Stage 7 (FastAPI backend): code COMPLETE, 165/165 tests passing.** Implemented
+  `scripts/api/{main,plots}.py` plus routers for wafers, detection, diagnosis, yield,
+  generation, and physics. Added FastAPI/Uvicorn/multipart deps and `httpx` for TestClient.
+  The API can run model-free for all non-detection endpoints; `/api/detect` returns 503 when
+  started without weights. **Stage 6 (monitoring) was deliberately skipped for now by user
+  decision** — `/api/monitor/*` endpoints remain absent until Stage 6 adds its router later.
 - **Stage 1 baseline TRAINED (2026-07-02, A100):** test-split mask mAP50 **0.842** (≥ 0.80
   target met), box mAP50 0.896; combo subset mask mAP50 0.670 (17-point gap — misses the
   ≤10-point criterion; swirl masks are the main failure at 0.151, plus random-in-combo and
@@ -358,11 +360,56 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 
 - `load_knowledge_base(path) -> dict`
 - `polygon_area(polygon) -> float`
+- `polygon_centroid_radius(polygon) -> float`
 - `diagnose(dots, detections, kb, die_mm=6.0, die_value=25.0) -> dict`
 - CLI supports exactly one of `--labels` (ground-truth mode) or `--model-path` (lazy YOLO).
 
-Tests (149): Stage 1/2/3/4 tests plus `test_diegrid.py`, `test_yieldmodels.py`,
-`test_economics.py`, `test_kinematics.py`, `test_fieldanalysis.py`, and `test_diagnosis.py`.
+`scripts/api/plots.py`:
+
+- `field_png(field, cmap="viridis") -> str` — base64 PNG for server-rendered heatmaps.
+- `image_png(image) -> str` — base64 PNG for generated wafer maps.
+
+`scripts/api/main.py`:
+
+- `create_app(model_path: Path | None) -> FastAPI`; loads YOLO once into `app.state.model`
+  when a path is provided, otherwise leaves non-detection endpoints available.
+- `GET /api/health` returns status and model-loaded boolean.
+- CLI: `uv run python -m scripts.api.main --model-path <weights> --host 127.0.0.1 --port 8000`.
+
+`scripts/api/routers/wafers.py`:
+
+- `GET /api/wafers?split=&category=&offset=0&limit=50`
+- `GET /api/wafers/{stem}`
+- `GET /api/wafers/{stem}/image`
+
+`scripts/api/routers/detect.py`:
+
+- `detections_to_response(class_ids, confidences, segments, class_names) -> list[dict]`
+- `POST /api/detect` accepts exactly one of `stem` query or multipart `file`; requires model.
+
+`scripts/api/routers/diagnose.py`:
+
+- `wafer_dots_and_detections(stem) -> tuple`
+- `GET /api/diagnose/{stem}?die_mm=6&die_value=25`
+
+`scripts/api/routers/yields.py`:
+
+- `GET /api/yield/wafer/{stem}?die_mm=6&die_value=25`
+- `GET /api/yield/pareto?split=test&limit=0&die_value=25`
+
+`scripts/api/routers/generate.py`:
+
+- `POST /api/generate` with categories or generator sampling params returns labels + PNG.
+
+`scripts/api/routers/physics.py`:
+
+- `POST /api/physics/thermal`
+- `POST /api/physics/spincoat`
+- `POST /api/physics/cmp`
+- `POST /api/physics/shotgrid`
+
+Tests (165): Stage 1/2/3/4 tests plus analytics and API tests. API tests use
+`create_app(None)` and stay weight-free.
 There are deliberately NO tests for CLI/argparse plumbing, training loops, or real WM-811K data.
 
 Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experiment.ipynb`,
@@ -471,29 +518,17 @@ The user rewrote generated code once to enforce this and does not want to again.
 
 ## 8. Next work
 
-### Stage 7 implementation (plan: `docs/superpowers/plans/2026-07-02-stage7-fastapi.md`)
+### Stage 7 live API gate
 
-Six tasks, all in `scripts/api/`: (1) deps (`fastapi`, `uvicorn`, `python-multipart`; dev
-`httpx`) + `plots.py` (field/image → base64 PNG) + `main.py` — `create_app(model_path | None)`
-factory loading YOLO into `app.state.model`, CORS for Vite (localhost:5173), `/api/health`,
-inline `__main__` argparse → `uvicorn.run` (`--model-path` default
-`runs/train/stage1_baseline/weights/best.pt`), plus six one-line router stubs so the factory
-never changes again; (2) `routers/wafers.py` — manifest-backed browse/filter/detail +
-`FileResponse` images; (3) `routers/detect.py` — pure `detections_to_response` helper (reuses
-Stage 5 geometry), stem-or-upload exactly-one, **503 when no model** (all other endpoints work
-model-free; tests use `create_app(None)`); (4) `routers/diagnose.py` + `routers/yields.py`
-(NOT `yield.py` — Python keyword) — §7.4 report, per-wafer yield panel, `/api/yield/pareto`
-with `limit`; shared `wafer_dots_and_detections`; (5) `routers/generate.py` +
-`routers/physics.py` — pydantic `Literal` modes for auto-422, thermal chain returns
-temperature/stress/slip-probability PNGs + rendered sample, shotgrid composes
-`intra_field_mask`/inter-field logic with fixed `cell = 0.25` (6×6-die fields on a 48-die
-grid) and returns the Stage 5 `field_verdict` — physics → pattern → analysis in one response;
-(6) live-server walkthrough against the real Stage 1 weights + `/docs` QA → **human gate**
-(response shapes reviewed before Stage 8 builds on them).
+Code tasks are complete. Remaining manual gate requires the real Stage 1 checkpoint locally:
 
-Rule: the API layer contains NO business logic — every endpoint delegates to existing
-modules. Physics endpoints stay under 3 s (thermal at `solver_grid = 96`). Expected suite
-total after Stage 7: 165 tests.
+1. Put the trained checkpoint at `runs/train/stage1_baseline/weights/best.pt`.
+2. Start the server:
+   `uv run python -m scripts.api.main --model-path runs/train/stage1_baseline/weights/best.pt`
+3. Review `http://127.0.0.1:8000/docs`.
+4. Exercise `/api/detect?stem=0101_scratch`, `/api/diagnose/0101_scratch`,
+   `/api/yield/pareto?split=test&limit=20`, and `/api/physics/thermal`.
+5. STOP for user review of response shapes before Stage 8 builds the dashboard.
 
 ### Stage 5 report review gate
 

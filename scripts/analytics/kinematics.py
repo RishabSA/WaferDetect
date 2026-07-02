@@ -5,6 +5,7 @@ raster_size = 64
 n_angles = 180
 straightness_tolerance = 0.05
 concentric_center_tolerance = 0.3
+arc_chord_ratio_limit = 2.0
 
 
 def radon_orientation(points: np.ndarray) -> float:
@@ -44,8 +45,12 @@ def circle_fit(points: np.ndarray) -> tuple[float, float, float]:
 
 def scratch_verdict(points: np.ndarray) -> dict:
     orientation = radon_orientation(points)
+    deviation = line_deviation(points)
+    cx, cy, radius = circle_fit(points)
+    chord = np.linalg.norm(points[-1] - points[0])
+    arc_like = radius > 0 and chord / radius <= arc_chord_ratio_limit
 
-    if line_deviation(points) < straightness_tolerance:
+    if deviation < straightness_tolerance and not arc_like:
         rim_most = points[np.hypot(points[:, 0], points[:, 1]).argmax()]
         return {
             "verdict": "handling_linear",
@@ -57,7 +62,6 @@ def scratch_verdict(points: np.ndarray) -> dict:
             ),
         }
 
-    cx, cy, radius = circle_fit(points)
     concentric = np.hypot(cx, cy) < concentric_center_tolerance
     return {
         "verdict": "cmp_rotational" if concentric else "off_axis_arc",
