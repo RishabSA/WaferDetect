@@ -1,0 +1,76 @@
+import argparse
+import os
+from pathlib import Path
+import numpy as np
+import pandas as pd
+
+pickle_path = Path("data/wm811k/LSWMD.pkl")
+parquet_path = Path("data/wm811k/labeled.parquet")
+
+wm811k_class_map = {
+    "Center": "center",
+    "Donut": "donut",
+    "Edge-Ring": "edge_ring",
+    "Edge-Loc": "edge_loc",
+    "Scratch": "scratch",
+    "Random": "random",
+    "Loc": "loc",
+    "Near-full": "near_full",
+    "none": "none",
+}
+
+
+def flatten_label(value) -> str | None:
+    flat = np.ravel(value)
+    return str(flat[0]) if flat.size else None
+
+
+def convert(pickle_path: Path, parquet_path: Path) -> pd.DataFrame:
+    raw = pd.read_pickle(pickle_path)
+
+    labels = raw["failureType"].map(flatten_label)
+    keep = labels.isin(wm811k_class_map)
+    maps = raw.loc[keep, "waferMap"]
+
+    frame = pd.DataFrame(
+        {
+            "failure_type": labels[keep].map(wm811k_class_map).to_numpy(),
+            "lot": raw.loc[keep, "lotName"].astype(str).to_numpy(),
+            "rows": maps.map(lambda wafer_map: wafer_map.shape[0]).to_numpy(),
+            "cols": maps.map(lambda wafer_map: wafer_map.shape[1]).to_numpy(),
+            "map": maps.map(
+                lambda wafer_map: wafer_map.astype(np.uint8).tobytes()
+            ).to_numpy(),
+        }
+    )
+
+    os.makedirs(parquet_path.parent, exist_ok=True)
+    frame.to_parquet(parquet_path)
+    return frame
+
+
+def load_map(row) -> np.ndarray:
+    return np.frombuffer(row["map"], dtype=np.uint8).reshape(row["rows"], row["cols"])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "--pickle",
+        type=str,
+        default=str(pickle_path),
+        help="Path to the downloaded LSWMD.pkl (default: data/wm811k/LSWMD.pkl).",
+    )
+    parser.add_argument(
+        "--parquet",
+        type=str,
+        default=str(parquet_path),
+        help="Output parquet path (default: data/wm811k/labeled.parquet).",
+    )
+
+    args = parser.parse_args()
+    frame = convert(Path(args.pickle), Path(args.parquet))
+
+    print(frame["failure_type"].value_counts().to_string())
+    print(f"Wrote {len(frame)} labeled wafers to {args.parquet}")

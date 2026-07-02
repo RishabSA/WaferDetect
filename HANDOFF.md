@@ -59,10 +59,12 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   review-sheet rendering in `/private/tmp`. Remaining Stage 3 work is the human visual gate:
   generate the 300-sample physics pilot in `data/generated/physics_pilot`, review sheets for
   the six physics-covered classes, and choose the production `--physics-frac`.
-- **Stage 4 (WM-811K validation): plan written, not started** —
-  `docs/superpowers/plans/2026-07-02-stage4-wm811k.md`. Six tasks; see §8 below. Code builds
-  and tests without the dataset or weights; execution needs the user's Kaggle download of
-  `LSWMD.pkl` (~2 GB → `data/wm811k/`) and a trained model.
+- **Stage 4 (WM-811K validation): code COMPLETE, 127/127 tests passing.** Implemented
+  `scripts/wm811k/{convert,manifests,render,zero_shot,pseudolabel}.py`, fixture-only tests,
+  `colab/stage4_wm811k.md`, and deps `pandas` + `pyarrow`. Code builds and tests without the
+  dataset or weights. Remaining Stage 4 work is execution-gated: user download of `LSWMD.pkl`
+  (~2 GB → `data/wm811k/`) plus trained weights, then conversion/rendering, zero-shot scoring,
+  few-shot sweeps, and the die-grid quantization ablation.
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in
@@ -250,9 +252,45 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
 - `generate_sample(..., physics_frac: float = 0.0)` and CLI `--physics-frac`; default `0.0`
   preserves Stage 2 behavior.
 
-Tests (108): Stage 1/2 tests plus `test_thermal.py`, `test_spincoat.py`, `test_cmp.py`,
-`test_shotgrid_physics.py`, and `test_physics_builders.py`. There are deliberately NO tests for
-CLI/argparse plumbing or for constant values.
+`scripts/wm811k/convert.py` — Stage 4 WM-811K converter:
+
+- `wm811k_class_map` — exact closed mapping: Center, Donut, Edge-Ring, Edge-Loc, Scratch,
+  Random, Loc, Near-full, none
+- `flatten_label(value) -> str | None`
+- `convert(pickle_path: Path, parquet_path: Path) -> pd.DataFrame`
+- `load_map(row) -> np.ndarray`
+
+`scripts/wm811k/manifests.py`:
+
+- `build_manifests(frame, seed, eval_cap=2000, calibration_per_class=50,
+  fewshot_reserve=600, none_calibration=200, none_eval=2000) -> dict[str, list[int]]`
+- `write_manifests(manifests, frame, out_dir) -> None`
+- `read_manifest(path: Path) -> list[int]`
+
+`scripts/wm811k/render.py`:
+
+- `die_dots(wafer_map: np.ndarray) -> np.ndarray`
+- `render_manifest(frame, indices, out_dir, seed) -> None`; uses the Stage 2 renderer verbatim
+  and stems `{index:06d}_{failure_type}.jpg`
+
+`scripts/wm811k/zero_shot.py`:
+
+- `defect_classes` — the 8 mapped defect classes, excluding `none`
+- `reduce_detections(class_ids, confidences, class_names, threshold) -> str`
+- `predict_directory(model, images_dir, batch_size=64) -> dict`
+- `choose_threshold(predictions, truths, class_names) -> tuple[float, float]`
+- `score(predictions, truths, class_names, threshold) -> dict`
+- `truths_from_directory(images_dir) -> dict`
+
+`scripts/wm811k/pseudolabel.py`:
+
+- `pseudo_polygon(wafer_map, class_name) -> list[tuple[float, float]]`
+- `pseudo_label_line(wafer_map, class_name, class_names) -> str`
+- CLI builds complete few-shot YOLO layouts under `data/wm811k/fewshot_<budget>_<seed>/`
+
+Tests (127): Stage 1/2/3 tests plus `test_wm811k_convert.py`, `test_wm811k_manifests.py`,
+`test_wm811k_render.py`, `test_wm811k_zero_shot.py`, and `test_wm811k_pseudolabel.py`.
+There are deliberately NO tests for CLI/argparse plumbing, training loops, or real WM-811K data.
 
 Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experiment.ipynb`,
 `wafe_map.py`, `plot_annotated.py` are the user's exploratory scripts — **do not modify,
@@ -360,30 +398,20 @@ The user rewrote generated code once to enforce this and does not want to again.
 
 ## 8. Next work
 
-### Stage 4 implementation (plan: `docs/superpowers/plans/2026-07-02-stage4-wm811k.md`)
+### Stage 4 execution gate
 
-Six tasks, all in `scripts/wm811k/`: (1) `convert.py` — LSWMD.pkl → `labeled.parquet`
-(~173k labeled rows; map stored as uint8 bytes + shape; row position = wafer ID;
-`wm811k_class_map` is the exact closed 9-entry mapping); (2) `manifests.py` — seeded disjoint
-calibration/eval/fewshot_pool index lists per class, `none` split between calibration and
-eval (calibration MUST contain none wafers or the threshold sweep degenerates — never the
-pool), per-class counts in `manifest_summary.json`; (3) `render.py` — die grid → 640×640
-image reusing `scripts.datagen.generator.render` verbatim (same dot radii as training;
-per-wafer seed = seed + index; stems `{index:06d}_{class}` keep `stem_category` compatible);
-(4) `zero_shot.py` — one `model.predict` pass at 0.01 conf floor, detections cached to JSON,
-threshold swept 0.05–0.60 on calibration (argmax defect macro-F1), eval scored image-level
-(macro-F1 over the 8 mapped classes, per-class report, confusion, none-FPR; unmapped
-detections reduce to `"other"` and count as errors); (5) `pseudolabel.py` — DBSCAN
-(eps = 2.5 die pitches) cluster selection (largest; edge classes → max mean radius;
-near_full/random → all), convex hull over die-cell **corners** (never degenerate for
-collinear scratches), plus a CLI that builds complete few-shot YOLO layouts
-(`fewshot_<budget>_<seed>`) reusing `perception/train.py` for fine-tuning; (6)
-`colab/stage4_wm811k.md` — zero-shot run, few-shot sweep ({10,50,100,500} × 2 arms ×
-3 seeds), die-grid-quantization ablation, exit gates.
+Code tasks are complete. Remaining execution requires external data and trained weights:
 
-Hard rules: image-level metrics only (pseudo-polygons are never evaluated against); tests
-run on tiny fixtures, never the real 2 GB pickle; new deps `pandas` + `pyarrow` at Task 1.
-Expected suite total after Stage 4: 127 tests.
+1. Put the user-downloaded WM-811K pickle at `data/wm811k/LSWMD.pkl`.
+2. Provide trained weights, preferably the Stage 2 production model.
+3. Follow `colab/stage4_wm811k.md`: convert to `labeled.parquet`, build manifests, render
+   calibration/eval images, run zero-shot, run few-shot sweeps, and run the die-grid
+   quantization ablation.
+4. Exit-gate review: report zero-shot defect macro-F1, none-FPR, confusion matrix,
+   few-shot budget curves with 3-seed error bars, and the quantization ablation delta.
+
+Hard rules: image-level metrics only; pseudo-polygons exist only for fine-tuning layouts and are
+never used as reported ground truth. Tests run on tiny fixtures, never the real 2 GB pickle.
 
 ### Stage 3 visual gate
 
