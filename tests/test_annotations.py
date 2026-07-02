@@ -10,16 +10,16 @@ from scripts.perception.annotations import (
     parse_label_line,
 )
 
-CLASSES_FILE = Path("data/raw/classes.txt")
-RAW_IMAGES_DIR = Path("data/raw/images")
-RAW_LABELS_DIR = Path("data/raw/labels")
+classes_file = Path("data/raw/classes.txt")
+raw_images_dir = Path("data/raw/images")
+raw_labels_dir = Path("data/raw/labels")
 
-VALID_LINE = "4 0.1 0.2 0.3 0.4 0.5 0.6"
-EXPECTED_PAIR_COUNT = 580
+valid_line = "4 0.1 0.2 0.3 0.4 0.5 0.6"
+expected_pair_count = 580
 
 
 def test_parse_valid_line() -> None:
-    instance = parse_label_line(VALID_LINE)
+    instance = parse_label_line(valid_line)
     assert instance == DefectInstance(
         class_id=4, polygon=[(0.1, 0.2), (0.3, 0.4), (0.5, 0.6)]
     )
@@ -36,7 +36,7 @@ def test_odd_coordinate_count_raises() -> None:
 
 
 def test_load_class_names_real_file() -> None:
-    names = load_class_names(CLASSES_FILE)
+    names = load_class_names(classes_file)
     assert len(names) == 21
     assert names[0] == "center"
     assert names[20] == "double_ring"
@@ -59,5 +59,5 @@ def test_load_dataset_missing_label_raises(tmp_path: Path) -> None:
 
 
 def test_load_dataset_real_files() -> None:
-    dataset = load_dataset(RAW_IMAGES_DIR, RAW_LABELS_DIR)
-    assert len(dataset) == EXPECTED_PAIR_COUNT
+    dataset = load_dataset(raw_images_dir, raw_labels_dir)
+    assert len(dataset) == expected_pair_count

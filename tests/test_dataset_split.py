@@ -4,23 +4,23 @@ import pytest
 
 import scripts.perception.dataset as dataset
 from scripts.perception.dataset import (
-    split_names,
     compute_split,
     read_manifests,
+    split_names,
     stem_category,
     write_manifests,
 )
 
-RAW_IMAGES_DIR = Path("data/raw/images")
-SEED = 42
-TRAIN_FRAC = 0.70
-VAL_FRAC = 0.15
-EXPECTED_COUNTS = {"train": 406, "val": 87, "test": 87}
-EXPECTED_TOTAL = 580
+raw_images_dir = Path("data/raw/images")
+seed = 42
+train_frac = 0.70
+val_frac = 0.15
+expected_counts = {"train": 406, "val": 87, "test": 87}
+expected_total = 580
 
 
 def real_stems() -> list[str]:
-    return sorted(path.stem for path in RAW_IMAGES_DIR.glob("*.jpg"))
+    return sorted(path.stem for path in raw_images_dir.glob("*.jpg"))
 
 
 def test_stem_category_variants() -> None:
@@ -36,25 +36,25 @@ def test_stem_category_rejects_bad_format() -> None:
 
 def test_split_is_deterministic() -> None:
     stems = real_stems()
-    first = compute_split(stems, train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED)
-    second = compute_split(stems, train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED)
+    first = compute_split(stems, train_frac=train_frac, val_frac=val_frac, seed=seed)
+    second = compute_split(stems, train_frac=train_frac, val_frac=val_frac, seed=seed)
     assert first == second
 
 
 def test_split_counts_and_disjointness() -> None:
     split = compute_split(
-        real_stems(), train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED
+        real_stems(), train_frac=train_frac, val_frac=val_frac, seed=seed
     )
     for name in split_names:
-        assert len(split[name]) == EXPECTED_COUNTS[name]
+        assert len(split[name]) == expected_counts[name]
     combined = split["train"] + split["val"] + split["test"]
-    assert len(set(combined)) == EXPECTED_TOTAL
+    assert len(set(combined)) == expected_total
 
 
 def test_every_category_in_every_split() -> None:
     stems = real_stems()
     expected_categories = {stem_category(stem) for stem in stems}
-    split = compute_split(stems, train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED)
+    split = compute_split(stems, train_frac=train_frac, val_frac=val_frac, seed=seed)
     for name in split_names:
         assert {stem_category(stem) for stem in split[name]} == expected_categories
 
@@ -62,9 +62,9 @@ def test_every_category_in_every_split() -> None:
 def test_tiny_category_does_not_raise() -> None:
     split = compute_split(
         ["0001_center", "0002_center"],
-        train_frac=TRAIN_FRAC,
-        val_frac=VAL_FRAC,
-        seed=SEED,
+        train_frac=train_frac,
+        val_frac=val_frac,
+        seed=seed,
     )
     combined = split["train"] + split["val"] + split["test"]
     assert sorted(combined) == ["0001_center", "0002_center"]

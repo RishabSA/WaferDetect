@@ -14,7 +14,7 @@ from scripts.perception.evaluate import (
     write_subset_yaml,
 )
 
-CLASS_NAMES = [f"class_{i}" for i in range(21)]
+class_names = [f"class_{i}" for i in range(21)]
 
 
 def make_images(tmp_path: Path) -> Path:
@@ -78,14 +78,14 @@ def fake_metrics() -> SimpleNamespace:
 
 
 def test_metrics_to_dict() -> None:
-    result = metrics_to_dict(fake_metrics(), CLASS_NAMES)
+    result = metrics_to_dict(fake_metrics(), class_names)
     assert result["box_map50"] == pytest.approx(0.8)
     assert result["mask_map50"] == pytest.approx(0.75)
     assert result["per_class"]["class_4"]["mask_ap50"] == pytest.approx(0.85)
 
 
 def test_render_report_contains_sections() -> None:
-    report = render_report({"full_test": metrics_to_dict(fake_metrics(), CLASS_NAMES)})
+    report = render_report({"full_test": metrics_to_dict(fake_metrics(), class_names)})
     assert "## full_test" in report
     assert "mask mAP50" in report
     assert "| class_4 |" in report

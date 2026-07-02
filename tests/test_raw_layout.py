@@ -1,24 +1,24 @@
 from pathlib import Path
 
-RAW_IMAGES_DIR = Path("data/raw/images")
-RAW_LABELS_DIR = Path("data/raw/labels")
-RAW_OVERLAYS_DIR = Path("data/raw/overlays")
-CLASSES_FILE = Path("data/raw/classes.txt")
+raw_images_dir = Path("data/raw/images")
+raw_labels_dir = Path("data/raw/labels")
+raw_overlays_dir = Path("data/raw/overlays")
+classes_file = Path("data/raw/classes.txt")
 
-EXPECTED_PAIR_COUNT = 580
+expected_pair_count = 580
 
 
 def test_raw_directories_exist() -> None:
-    assert RAW_IMAGES_DIR.is_dir()
-    assert RAW_LABELS_DIR.is_dir()
-    assert RAW_OVERLAYS_DIR.is_dir()
-    assert CLASSES_FILE.is_file()
+    assert raw_images_dir.is_dir()
+    assert raw_labels_dir.is_dir()
+    assert raw_overlays_dir.is_dir()
+    assert classes_file.is_file()
 
 
 def test_raw_counts() -> None:
-    assert len(list(RAW_IMAGES_DIR.glob("*.jpg"))) == EXPECTED_PAIR_COUNT
-    assert len(list(RAW_LABELS_DIR.glob("*.txt"))) == EXPECTED_PAIR_COUNT
-    assert len(list(RAW_OVERLAYS_DIR.glob("*.jpg"))) == EXPECTED_PAIR_COUNT
+    assert len(list(raw_images_dir.glob("*.jpg"))) == expected_pair_count
+    assert len(list(raw_labels_dir.glob("*.txt"))) == expected_pair_count
+    assert len(list(raw_overlays_dir.glob("*.jpg"))) == expected_pair_count
 
 
 def test_old_layout_gone() -> None:

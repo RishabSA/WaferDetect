@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.datagen.fields import gaussian_blob, lift_pin_field
+from scripts.datagen.fields import gaussian_blob, half_wafer_field, lift_pin_field
 from scripts.datagen.labels import (
     field_mask,
     field_to_polygon,
@@ -38,8 +38,6 @@ def test_multi_component_uses_hull() -> None:
 
 
 def test_rim_touching_field_closes() -> None:
-    from scripts.datagen.fields import half_wafer_field
-
     polygon = field_to_polygon(half_wafer_field(grid, np.random.default_rng(1)))
     assert len(polygon) >= 3
 

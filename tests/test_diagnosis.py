@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 
 from scripts.analytics.diagnosis import diagnose, kb_path, load_knowledge_base, polygon_area
 from scripts.baselines.classical import dot_coordinates
@@ -33,8 +34,6 @@ def test_diagnose_synthetic_structure() -> None:
 
 
 def test_diagnose_real_scratch_wafer() -> None:
-    from PIL import Image
-
     kb = load_knowledge_base(kb_path)
     names = load_class_names(classes_file)
     image = np.asarray(Image.open("data/raw/images/0101_scratch.jpg").convert("L"))

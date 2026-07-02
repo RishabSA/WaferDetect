@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from PIL import Image
 
 from scripts.wm811k.render import die_dots, render_manifest
 
@@ -37,8 +38,6 @@ def test_render_manifest_writes_named_images(tmp_path: Path) -> None:
 
     path = tmp_path / "000000_center.jpg"
     assert path.is_file()
-
-    from PIL import Image
 
     image = np.asarray(Image.open(path).convert("L"))
     assert image.shape == (640, 640)

@@ -1,13 +1,12 @@
 from pathlib import Path
 
+from PIL import Image
 import torch
 
 from scripts.baselines.resnet import WaferDataset, multi_hot
 
 
 def make_pair(tmp_path: Path, stem: str, lines: str) -> None:
-    from PIL import Image
-
     (tmp_path / "images").mkdir(exist_ok=True)
     (tmp_path / "labels").mkdir(exist_ok=True)
     Image.new("L", (640, 640), 255).save(tmp_path / "images" / f"{stem}.jpg")
