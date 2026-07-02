@@ -65,6 +65,12 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   dataset or weights. Remaining Stage 4 work is execution-gated: user download of `LSWMD.pkl`
   (~2 GB → `data/wm811k/`) plus trained weights, then conversion/rendering, zero-shot scoring,
   few-shot sweeps, and the die-grid quantization ablation.
+- **Stage 5 (analytics engine): code COMPLETE, 149/149 tests passing.** Implemented
+  `scripts/analytics/{diegrid,yieldmodels,economics,kinematics,fieldanalysis,diagnosis}.py`,
+  `knowledge_base.yaml`, `image_to_wafer`, and tests. Generated sample ground-truth reports:
+  `runs/analytics/0101_scratch.json` ($1606), `runs/analytics/0001_center.json` ($3194),
+  `runs/analytics/0481_combo_half_wafer+donut.json` ($19064). Remaining Stage 5 work is the
+  human report review/tuning gate.
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in
@@ -288,8 +294,63 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
 - `pseudo_label_line(wafer_map, class_name, class_names) -> str`
 - CLI builds complete few-shot YOLO layouts under `data/wm811k/fewshot_<budget>_<seed>/`
 
-Tests (127): Stage 1/2/3 tests plus `test_wm811k_convert.py`, `test_wm811k_manifests.py`,
-`test_wm811k_render.py`, `test_wm811k_zero_shot.py`, and `test_wm811k_pseudolabel.py`.
+`scripts/analytics/diegrid.py` — Stage 5 virtual die grid:
+
+- module globals: `wafer_radius_mm = 150.0`, `edge_exclusion_mm = 3.0`,
+  `default_die_mm = 6.0`, `radial_bins = 10`
+- `die_centers(die_mm=6.0) -> np.ndarray`
+- `failed_dies(dots, die_mm=6.0) -> np.ndarray`
+- `wafer_summary(dots, die_mm=6.0) -> dict`
+- `radial_yield(dots, die_mm=6.0, bins=10) -> list[float]`
+- `zone_yields(dots, die_mm=6.0) -> dict`
+
+`scripts/analytics/yieldmodels.py`:
+
+- `poisson_yield(defect_density, die_area) -> float`
+- `negative_binomial_yield(defect_density, die_area, alpha) -> float`
+- `estimate_defect_density(failed_fraction, die_area) -> float`
+- `quadrat_counts(dots, quadrats=8) -> np.ndarray`
+- `estimate_alpha(counts) -> float | None`
+
+`scripts/datagen/labels.py` Stage 5 addition:
+
+- `image_to_wafer(points, wafer_frac) -> list[tuple[float, float]]`
+
+`scripts/analytics/economics.py`:
+
+- die value is NOT a module global — it lives as the `die_value: float = 25.0` parameter
+  default on `decompose` and on the diagnosis CLI (`--die-value`); a 2026-07-02 cleanup
+  removed the former `die_value_dollars` global (importing it broke the suite once — fixed)
+- `points_in_polygon(points, polygon_image) -> np.ndarray`
+- `decompose(dots, polygons_image, die_mm=6.0, die_value=25.0) -> dict`
+- `pareto(items) -> list[tuple[str, float]]`
+
+`scripts/analytics/kinematics.py`:
+
+- `radon_orientation(points) -> float`
+- `line_deviation(points) -> float`
+- `circle_fit(points) -> tuple[float, float, float]`
+- `scratch_verdict(points) -> dict`
+
+`scripts/analytics/fieldanalysis.py`:
+
+- `shot_matrices(fail_grid, field_rows, field_cols) -> tuple[np.ndarray, np.ndarray]`
+- `field_verdict(per_shot, intra, z_threshold=3.0) -> dict`
+
+`scripts/analytics/knowledge_base.yaml`:
+
+- covers all 21 `classes.txt` classes with mechanism, process steps, tool families,
+  severity weight, and action.
+
+`scripts/analytics/diagnosis.py`:
+
+- `load_knowledge_base(path) -> dict`
+- `polygon_area(polygon) -> float`
+- `diagnose(dots, detections, kb, die_mm=6.0, die_value=25.0) -> dict`
+- CLI supports exactly one of `--labels` (ground-truth mode) or `--model-path` (lazy YOLO).
+
+Tests (149): Stage 1/2/3/4 tests plus `test_diegrid.py`, `test_yieldmodels.py`,
+`test_economics.py`, `test_kinematics.py`, `test_fieldanalysis.py`, and `test_diagnosis.py`.
 There are deliberately NO tests for CLI/argparse plumbing, training loops, or real WM-811K data.
 
 Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experiment.ipynb`,
@@ -398,6 +459,20 @@ The user rewrote generated code once to enforce this and does not want to again.
 
 ## 8. Next work
 
+### Stage 5 report review gate
+
+Code tasks are complete. Remaining execution is user review/tuning:
+
+1. Review sample reports already generated in `runs/analytics/`:
+   `0101_scratch.json`, `0001_center.json`, and `0481_combo_half_wafer+donut.json`.
+2. Sanity-check scratch kinematics against `data/raw/overlays/0101_scratch.jpg`.
+3. Check the combo report has separate region dollar attributions and sensible knowledge-base text.
+4. Tune constants only if needed: the `--die-value` CLI default, kinematics thresholds
+   (`straightness_tolerance` — see the off_axis_arc note in the review), die size, or YAML
+   action text.
+
+No new dependencies were added for Stage 5.
+
 ### Stage 4 execution gate
 
 Code tasks are complete. Remaining execution requires external data and trained weights:
@@ -443,10 +518,8 @@ unchanged. Physics tests are structural, never absolute-calibrated.
 
 Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, `tqdm`.
 
-## 9. Roadmap after Stage 4
+## 9. Roadmap after Stage 5
 
-Stage 5: analytics engine (die grid, negative
-binomial yield model, systematic-vs-random $-decomposition, knowledge base, diagnosis JSON).
 Stage 6: stream simulator + Shewhart/EWMA/CUSUM. Stage 7: FastAPI. Stage 8: React/Vite/Tailwind
 dashboard (six views; user's React conventions: TS, typed props interfaces, Tailwind-only with
 dark: variants, Recharts, react-icons). Stage 9: polish/release. Then F1/F2.

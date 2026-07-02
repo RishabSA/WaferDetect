@@ -1,0 +1,126 @@
+center:
+  mechanism: Radial process non-uniformity concentrated at the wafer center
+  process_steps: [spin coat, CMP]
+  tool_families: [coater track, CMP polisher]
+  severity_weight: 0.6
+  action: Check dispense volume and spin profile; check CMP carrier center pressure
+donut:
+  mechanism: Annular thickness or removal deviation at mid-radius
+  process_steps: [spin coat, CMP]
+  tool_families: [coater track, CMP polisher]
+  severity_weight: 0.6
+  action: Check exhaust/airflow during coat; check CMP pad wear profile
+edge_ring:
+  mechanism: Edge-localized process non-uniformity
+  process_steps: [edge bead removal, etch, CMP]
+  tool_families: [coater track, etch chamber, CMP polisher]
+  severity_weight: 0.7
+  action: Check EBR settings, etch edge exclusion, CMP edge pressure
+edge_loc:
+  mechanism: Localized edge defect from chamber asymmetry or handling contact
+  process_steps: [etch, wafer handling]
+  tool_families: [etch chamber, transfer robot]
+  severity_weight: 0.5
+  action: Check chamber symmetry and robot edge-grip contact points
+scratch:
+  mechanism: Mechanical contact dragging across the wafer surface
+  process_steps: [CMP, wafer handling]
+  tool_families: [CMP polisher, transfer robot, load port]
+  severity_weight: 0.9
+  action: "Correlate with kinematics verdict: rotational arc means CMP pad debris; straight chord means handling path"
+random:
+  mechanism: Spatially random particle contamination
+  process_steps: [ambient/filtration]
+  tool_families: [FOUP, filters, chamber cleanliness]
+  severity_weight: 0.3
+  action: Review particle counts and filter maintenance
+loc:
+  mechanism: Localized defect cluster from a discrete contamination event
+  process_steps: [deposition, etch]
+  tool_families: [deposition chamber, etch chamber]
+  severity_weight: 0.5
+  action: Check recent chamber events and in-situ particle monitors
+near_full:
+  mechanism: Gross process failure across the wafer
+  process_steps: [multiple]
+  tool_families: [multiple]
+  severity_weight: 1.0
+  action: Hold the lot; review every step since last known-good inspection
+swirl:
+  mechanism: Rotation-coupled flow marks during coating or cleaning
+  process_steps: [spin coat, wet clean]
+  tool_families: [coater track, wet bench]
+  severity_weight: 0.6
+  action: Check spin acceleration profile and rinse timing
+radial_spokes:
+  mechanism: Rotation-synchronized angular non-uniformity
+  process_steps: [spin coat, etch]
+  tool_families: [coater track, etch chamber]
+  severity_weight: 0.6
+  action: Check for chuck vibration and gas-inlet asymmetry
+shot_grid:
+  mechanism: Lithography exposure-field-correlated failures
+  process_steps: [lithography]
+  tool_families: [stepper/scanner, reticle]
+  severity_weight: 0.8
+  action: "Run field analysis: repeating intra-field position means reticle defect, whole-shot failures mean stage or dose drift"
+crescent:
+  mechanism: Partial-edge asymmetry from chuck tilt or shadowing
+  process_steps: [etch, deposition]
+  tool_families: [chuck, etch chamber]
+  severity_weight: 0.5
+  action: Check chuck leveling and wafer seating
+half_wafer:
+  mechanism: Half-field process failure or flow shadowing
+  process_steps: [lithography, deposition]
+  tool_families: [stepper/scanner, deposition chamber]
+  severity_weight: 0.8
+  action: Check exposure completeness and gas-flow uniformity
+wedge:
+  mechanism: Angular-sector non-uniformity
+  process_steps: [etch]
+  tool_families: [etch chamber]
+  severity_weight: 0.6
+  action: Check chamber gas distribution and RF symmetry
+comet:
+  mechanism: Particle pinned during coat, streaking downstream
+  process_steps: [spin coat]
+  tool_families: [coater track]
+  severity_weight: 0.5
+  action: Check dispense filtration; inspect for dried resist on the nozzle
+edge_scratch:
+  mechanism: Rim-anchored mechanical contact
+  process_steps: [wafer handling]
+  tool_families: [transfer robot, load port, wafer cassette]
+  severity_weight: 0.7
+  action: Correlate entry bearing with handler positions; inspect end-effectors
+lift_pin:
+  mechanism: Chuck lift-pin contact marks
+  process_steps: [RTP, etch, deposition]
+  tool_families: [chuck lift pins]
+  severity_weight: 0.6
+  action: Inspect lift-pin height calibration and contamination
+bullseye:
+  mechanism: Concentric radial variation in deposition or planarization
+  process_steps: [CVD, spin coat, CMP]
+  tool_families: [deposition chamber, coater track, CMP polisher]
+  severity_weight: 0.6
+  action: Check radial uniformity knobs (showerhead spacing, spin profile)
+gradient:
+  mechanism: Monotonic cross-wafer drift
+  process_steps: [deposition, spin coat]
+  tool_families: [deposition chamber, chuck leveling]
+  severity_weight: 0.6
+  action: Check chuck tilt and temperature gradient across the susceptor
+slip_lines:
+  mechanism: Crystallographic slip from thermal-gradient stress
+  process_steps: [RTP]
+  tool_families: [RTP lamp bank, chuck lift pins]
+  severity_weight: 0.9
+  action: Reduce ramp rate; check lamp uniformity and pin contact
+double_ring:
+  mechanism: Two-radius annular deviation
+  process_steps: [CMP, spin coat]
+  tool_families: [CMP polisher, coater track]
+  severity_weight: 0.6
+  action: Check pad conditioning sweep profile

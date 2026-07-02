@@ -47,6 +47,12 @@ def wafer_to_image(
     ]
 
 
+def image_to_wafer(
+    points: list[tuple[float, float]], wafer_frac: float
+) -> list[tuple[float, float]]:
+    return [((x - 0.5) * 2 / wafer_frac, (y - 0.5) * 2 / wafer_frac) for x, y in points]
+
+
 def yolo_line(class_id: int, polygon: list[tuple[float, float]]) -> str:
     coords = " ".join(f"{x:.6f} {y:.6f}" for x, y in polygon)
     return f"{class_id} {coords}"
