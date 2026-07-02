@@ -8,10 +8,9 @@
 3. Install: `!pip install -q uv && !uv sync`
 4. Build the dataset (idempotent, uses committed split manifests' seed):
    `!uv run python -m scripts.perception.dataset --force`
-5. Train (resumable — rerun with `--resume` after a session drop, pointing
-   `--weights runs/train/stage1_baseline/weights/last.pt`):
-   `!uv run python -m scripts.perception.train --device 0`
+5. Train. Write checkpoints to Colab's local disk, not mounted Drive:
+   `!uv run python -m scripts.perception.train --device 0 --project /content/waferdetect_runs/train`
 6. Evaluate:
-   `!uv run python -m scripts.perception.evaluate --weights runs/train/stage1_baseline/weights/best.pt`
-7. Copy `runs/` to Drive:
-   `!cp -r runs /content/drive/MyDrive/waferdetect_runs_stage1`
+   `!uv run python -m scripts.perception.evaluate --model-path /content/waferdetect_runs/train/stage1_baseline/weights/best.pt`
+7. Copy local run artifacts to Drive:
+   `!cp -r /content/waferdetect_runs /content/drive/MyDrive/waferdetect_runs_stage1`

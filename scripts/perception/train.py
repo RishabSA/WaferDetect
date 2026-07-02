@@ -1,14 +1,20 @@
-from ultralytics import YOLO
 import argparse
+from pathlib import Path
+
+from ultralytics import YOLO
 
 if __name__ == "__main__":
+    project = "runs/train"
+    if Path.cwd().resolve().as_posix().startswith("/content/drive/"):
+        project = "/content/waferdetect_runs/train"
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "--data",
         type=str,
         default="data/yolo/data.yaml",
-        help="Path to the YOLO data direcotry with the data.yaml file (default: data/yolo/data.yaml).",
+        help="Path to the YOLO data directory with the data.yaml file (default: data/yolo/data.yaml).",
     )
     parser.add_argument(
         "--name",
@@ -35,6 +41,12 @@ if __name__ == "__main__":
         help="YOLO segmentation model name *.pt to load (default: yolo26m-seg.pt).",
     )
     parser.add_argument(
+        "--project",
+        type=str,
+        default=project,
+        help=f"YOLO training output directory (default: {project}).",
+    )
+    parser.add_argument(
         "--resume",
         action="store_true",
     )
@@ -42,7 +54,7 @@ if __name__ == "__main__":
         "--seed",
         type=int,
         default=42,
-        help="Seed to use for reproducibility (defualt: 42).",
+        help="Seed to use for reproducibility (default: 42).",
     )
 
     args = parser.parse_args()
@@ -62,7 +74,7 @@ if __name__ == "__main__":
         "hsv_s": 0.0,
         "hsv_v": 0.0,
         "seed": args.seed,
-        "project": "runs/train",
+        "project": args.project,
         "name": args.name,
         "device": args.device,
     }

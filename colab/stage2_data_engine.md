@@ -14,8 +14,8 @@ pilot review sheets were approved.
 ```bash
 for N in 500 1000 2000 5000 10000; do
   uv run python -m scripts.datagen.layout --generated-dir data/generated/v1 --out-dir data/generated/v1_yolo_${N} --limit ${N}
-  uv run python -m scripts.perception.train --data data/generated/v1_yolo_${N}/data.yaml --name stage2_scale_${N} --device 0
-  uv run python -m scripts.perception.evaluate --model-path runs/train/stage2_scale_${N}/weights/best.pt --data data/generated/v1_yolo_${N}/data.yaml --name stage2_scale_${N}
+  uv run python -m scripts.perception.train --data data/generated/v1_yolo_${N}/data.yaml --name stage2_scale_${N} --device 0 --project /content/waferdetect_runs/train
+  uv run python -m scripts.perception.evaluate --model-path /content/waferdetect_runs/train/stage2_scale_${N}/weights/best.pt --data data/generated/v1_yolo_${N}/data.yaml --name stage2_scale_${N}
 done
 ```
 
@@ -23,4 +23,4 @@ Evaluate scores on the raw test split because the generated layout's `data.yaml`
 at `data/yolo/images/test`.
 
 5. ResNet baseline: `!uv run python -m scripts.baselines.resnet --device cuda --epochs 20`
-6. Copy `runs/` to Drive.
+6. Copy `runs/` and `/content/waferdetect_runs/` to Drive.

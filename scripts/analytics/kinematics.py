@@ -3,7 +3,7 @@ from skimage.transform import radon
 
 raster_size = 64
 n_angles = 180
-straightness_tolerance = 0.02
+straightness_tolerance = 0.05
 concentric_center_tolerance = 0.3
 
 

@@ -27,12 +27,14 @@ for BUDGET in 10 50 100 500; do
   for SEED in 42 43 44; do
     uv run python -m scripts.wm811k.pseudolabel --budget ${BUDGET} --seed ${SEED}
     uv run python -m scripts.perception.train --data data/wm811k/fewshot_${BUDGET}_${SEED}/data.yaml \
-      --name wm811k_ft_${BUDGET}_${SEED} --model-name weights/best.pt --epochs 60 --device 0 --seed ${SEED}
-    uv run python -m scripts.wm811k.zero_shot --model-path runs/train/wm811k_ft_${BUDGET}_${SEED}/weights/best.pt \
+      --name wm811k_ft_${BUDGET}_${SEED} --model-name weights/best.pt --epochs 60 --device 0 --seed ${SEED} \
+      --project /content/waferdetect_runs/train
+    uv run python -m scripts.wm811k.zero_shot --model-path /content/waferdetect_runs/train/wm811k_ft_${BUDGET}_${SEED}/weights/best.pt \
       --out-dir runs/wm811k/ft_${BUDGET}_${SEED}
     uv run python -m scripts.perception.train --data data/wm811k/fewshot_${BUDGET}_${SEED}/data.yaml \
-      --name wm811k_scratch_${BUDGET}_${SEED} --model-name yolo26m-seg.pt --epochs 60 --device 0 --seed ${SEED}
-    uv run python -m scripts.wm811k.zero_shot --model-path runs/train/wm811k_scratch_${BUDGET}_${SEED}/weights/best.pt \
+      --name wm811k_scratch_${BUDGET}_${SEED} --model-name yolo26m-seg.pt --epochs 60 --device 0 --seed ${SEED} \
+      --project /content/waferdetect_runs/train
+    uv run python -m scripts.wm811k.zero_shot --model-path /content/waferdetect_runs/train/wm811k_scratch_${BUDGET}_${SEED}/weights/best.pt \
       --out-dir runs/wm811k/scratch_${BUDGET}_${SEED}
   done
 done
@@ -40,4 +42,4 @@ done
 
 5. Quantization ablation: compare zero-shot macro-F1 for Stage 2 10k generated models built
    with `--die-grid-frac 0.0` versus `0.5`.
-6. Copy `runs/wm811k/` to Drive.
+6. Copy `runs/wm811k/` and `/content/waferdetect_runs/` to Drive.

@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if bool(args.labels) == bool(args.model_path):
-        parser.error("provide exactly one of --labels or --model-path")
+        parser.error("Provide exactly one of --labels or --model-path")
 
     names = load_class_names(classes_file)
     image_path = Path(args.image)
