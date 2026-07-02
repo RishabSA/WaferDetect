@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "waferdetect"
 version = "0.1.0"
@@ -6,4 +10,19 @@ readme = "README.md"
 requires-python = ">=3.13.7"
 dependencies = [
     "matplotlib>=3.11.0",
+    "pydantic>=2.13.4",
+    "pyyaml>=6.0.3",
+    "scikit-image>=0.26.0",
+    "scipy>=1.18.0",
+    "torch>=2.12.1",
+    "ultralytics>=8.4.84",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.20",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/waferdetect"]
