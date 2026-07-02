@@ -14,9 +14,7 @@ def make_generated(tmp_path: Path, count: int = 20) -> Path:
         category = "donut" if index % 2 else "scratch"
         stem = f"{index:04d}_{category}"
         (generated / "images" / f"{stem}.jpg").write_bytes(b"fake-jpeg")
-        (generated / "labels" / f"{stem}.txt").write_text(
-            "0 0.1 0.2 0.3 0.4 0.5 0.6\n"
-        )
+        (generated / "labels" / f"{stem}.txt").write_text("0 0.1 0.2 0.3 0.4 0.5 0.6\n")
 
     return generated
 
@@ -42,7 +40,11 @@ def test_build_layout_limit_is_deterministic(tmp_path: Path) -> None:
     first = build_layout(generated, tmp_path / "a", val_frac=0.2, seed=7, limit=10)
     second = build_layout(generated, tmp_path / "b", val_frac=0.2, seed=7, limit=10)
 
-    stems_a = sorted(path.stem for path in (tmp_path / "a" / "images" / "train").glob("*.jpg"))
-    stems_b = sorted(path.stem for path in (tmp_path / "b" / "images" / "train").glob("*.jpg"))
+    stems_a = sorted(
+        path.stem for path in (tmp_path / "a" / "images" / "train").glob("*.jpg")
+    )
+    stems_b = sorted(
+        path.stem for path in (tmp_path / "b" / "images" / "train").glob("*.jpg")
+    )
     assert stems_a == stems_b
     assert first.name == second.name == "data.yaml"

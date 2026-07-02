@@ -53,6 +53,18 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   baseline was run locally: singles accuracy 0.8194, singles macro-F1 0.7911, combo exact-match
   0 by construction. Remaining Stage 2 work is human/A100 gated: pilot review approval, 10k
   generation, YOLO scaling study, ResNet training, and exit-gate comparison.
+- **Stage 3 (physics suite): code COMPLETE, 108/108 tests passing.** Implemented
+  `scripts/datagen/physics/{thermal,spincoat,cmp,shotgrid,builders}.py`, generator
+  `physics_frac` integration, and tests. Local smoke verified physics-mode generation and
+  review-sheet rendering in `/private/tmp`. Remaining Stage 3 work is the human visual gate:
+  generate the 300-sample physics pilot in `data/generated/physics_pilot`, review sheets for
+  the six physics-covered classes, and choose the production `--physics-frac`.
+- **Stage 4 (WM-811K validation): plan written, not started** —
+  `docs/superpowers/plans/2026-07-02-stage4-wm811k.md`. Six tasks; see §8 below. Code builds
+  and tests without the dataset or weights; execution needs the user's Kaggle download of
+  `LSWMD.pkl` (~2 GB → `data/wm811k/`) and a trained model.
+- 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
+  no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in
   §6 — that style is now mandatory on the first pass. They deleted `config.py`,
   `test_config.py`, `test_train_args.py` in that sweep; do not reintroduce them.
@@ -200,9 +212,47 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
 - `WaferDataset(images_dir, labels_dir, n_classes)`
 - `evaluate(model, loader, device)` plus CLI for ResNet-18 multi-label training/evaluation
 
-Tests (80): Stage 1 tests plus `test_fields.py`, `test_labels.py`, `test_generator.py`,
-`test_review.py`, `test_layout.py`, `test_classical.py`, and `test_resnet_baseline.py`.
-There are deliberately NO tests for CLI/argparse plumbing or for constant values.
+`scripts/datagen/physics/thermal.py` — Stage 3 thermal stress/slip model:
+
+- `masked_laplacian(temperature, disk) -> np.ndarray` — conservative insulated disk exchange
+- `solve_heat(...) -> np.ndarray` — explicit-FDM lamp ramp, rim cooling, lift-pin sinks, optional
+  cold spot
+- `thermal_stress(temperature, disk) -> np.ndarray`
+- `slip_probability(temperature, disk, sharpness=2.0) -> np.ndarray`
+- `slip_lines_field(grid, rng) -> np.ndarray`
+
+`scripts/datagen/physics/spincoat.py`:
+
+- `film_thickness(spin_speed, evaporation, duration) -> float`
+- `thickness_deviation(grid, mode, amplitude, rng) -> np.ndarray`, modes:
+  `center`, `annular`, `tilt`, `edge_bead`
+- `deviation_to_probability(deviation, amplitude) -> np.ndarray`
+- `spincoat_field(grid, rng, mode) -> np.ndarray`
+
+`scripts/datagen/physics/cmp.py`:
+
+- `removal_profile(grid, mode, amplitude, velocity_mismatch, rng) -> np.ndarray`, modes:
+  `center`, `edge_ring`, `donut`
+- `cmp_field(grid, rng, mode) -> np.ndarray`
+
+`scripts/datagen/physics/shotgrid.py`:
+
+- `intra_field_mask(grid, cell, offset, spot, spot_radius) -> np.ndarray`
+- `shot_grid_physics_field(grid, rng) -> np.ndarray`
+
+`scripts/datagen/physics/builders.py`:
+
+- `physics_field_builders` covers exactly `slip_lines`, `center`, `donut`, `edge_ring`,
+  `gradient`, `shot_grid`; center/donut/edge_ring randomly choose spin-coat vs. CMP.
+
+`scripts/datagen/generator.py` Stage 3 addition:
+
+- `generate_sample(..., physics_frac: float = 0.0)` and CLI `--physics-frac`; default `0.0`
+  preserves Stage 2 behavior.
+
+Tests (108): Stage 1/2 tests plus `test_thermal.py`, `test_spincoat.py`, `test_cmp.py`,
+`test_shotgrid_physics.py`, and `test_physics_builders.py`. There are deliberately NO tests for
+CLI/argparse plumbing or for constant values.
 
 Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experiment.ipynb`,
 `wafe_map.py`, `plot_annotated.py` are the user's exploratory scripts — **do not modify,
@@ -308,30 +358,66 @@ The user rewrote generated code once to enforce this and does not want to again.
 - Work stage-by-stage from the plan; the plan's task order is deliberate. Report deviations
   explicitly rather than improvising.
 
-## 8. Next work: Stage 2 gates (plan: `docs/superpowers/plans/2026-07-02-stage2-data-engine.md`)
+## 8. Next work
+
+### Stage 4 implementation (plan: `docs/superpowers/plans/2026-07-02-stage4-wm811k.md`)
+
+Six tasks, all in `scripts/wm811k/`: (1) `convert.py` — LSWMD.pkl → `labeled.parquet`
+(~173k labeled rows; map stored as uint8 bytes + shape; row position = wafer ID;
+`wm811k_class_map` is the exact closed 9-entry mapping); (2) `manifests.py` — seeded disjoint
+calibration/eval/fewshot_pool index lists per class, `none` split between calibration and
+eval (calibration MUST contain none wafers or the threshold sweep degenerates — never the
+pool), per-class counts in `manifest_summary.json`; (3) `render.py` — die grid → 640×640
+image reusing `scripts.datagen.generator.render` verbatim (same dot radii as training;
+per-wafer seed = seed + index; stems `{index:06d}_{class}` keep `stem_category` compatible);
+(4) `zero_shot.py` — one `model.predict` pass at 0.01 conf floor, detections cached to JSON,
+threshold swept 0.05–0.60 on calibration (argmax defect macro-F1), eval scored image-level
+(macro-F1 over the 8 mapped classes, per-class report, confusion, none-FPR; unmapped
+detections reduce to `"other"` and count as errors); (5) `pseudolabel.py` — DBSCAN
+(eps = 2.5 die pitches) cluster selection (largest; edge classes → max mean radius;
+near_full/random → all), convex hull over die-cell **corners** (never degenerate for
+collinear scratches), plus a CLI that builds complete few-shot YOLO layouts
+(`fewshot_<budget>_<seed>`) reusing `perception/train.py` for fine-tuning; (6)
+`colab/stage4_wm811k.md` — zero-shot run, few-shot sweep ({10,50,100,500} × 2 arms ×
+3 seeds), die-grid-quantization ablation, exit gates.
+
+Hard rules: image-level metrics only (pseudo-polygons are never evaluated against); tests
+run on tiny fixtures, never the real 2 GB pickle; new deps `pandas` + `pyarrow` at Task 1.
+Expected suite total after Stage 4: 127 tests.
+
+### Stage 3 visual gate
 
 Code tasks are complete. Remaining execution is gated:
 
-1. Generate the pilot set:
-   `uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`
+1. Generate the physics pilot:
+   `uv run python -m scripts.datagen.generator --out-dir data/generated/physics_pilot --count 300 --combo-frac 0.0 --physics-frac 1.0 --seed 42`
 2. Render review sheets:
-   `uv run python -m scripts.datagen.review --generated-dir data/generated/pilot`
-3. STOP for user approval of `data/generated/pilot/review/*.png` before generating 10k.
-4. After approval, follow `colab/stage2_data_engine.md` for the 10k generation, YOLO scaling
-   study at {500,1k,2k,5k,10k}, ResNet baseline training, and exit-gate comparison.
+   `uv run python -m scripts.datagen.review --generated-dir data/generated/physics_pilot`
+3. STOP for user approval of `data/generated/physics_pilot/review/*.png`, focused on
+   `slip_lines`, `center`, `donut`, `edge_ring`, `gradient`, and `shot_grid`.
+4. With the user, choose the production `--physics-frac` for future generated datasets
+   (recommendation remains 0.5).
 
-Exit gates: (A) user approves pilot sheets; (B) model trained on ~500 generated-only images ≥
-Stage-1 baseline mask mAP50 on the raw test split; (C) scaling curve + 10k production model;
-(D) baseline comparison table (detector vs. SVM vs. ResNet — the "why detection" evidence).
+Key contracts: every physics builder has the Stage 2 field signature
+`(grid, rng) -> np.ndarray` (non-negative, zero off-disk), so labeling/rendering/review work
+unchanged. Physics tests are structural, never absolute-calibrated.
 
-Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, and `tqdm`.
+### Still-pending execution (Stages 1–2, user/A100 gated)
 
-## 9. Roadmap after Stage 2
+1. Stage 2 Gate A: generate the heuristic pilot
+   (`uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`),
+   render review sheets, user approves before 10k.
+2. One Colab A100 session: Stage 1 baseline training + eval (`colab/stage1_baseline.md` —
+   the Gate B measuring stick), then `colab/stage2_data_engine.md` (10k generation, scaling
+   study {500,1k,2k,5k,10k}, ResNet baseline).
+3. Exit-gate review: Gate B (500-generated model ≥ Stage 1 baseline mask mAP50), Gate C
+   (scaling curve), Gate D (detector vs. SVM 0.8194-singles/0-combo vs. ResNet table).
 
-Stage 3: physics modules (`datagen/physics/` — heat-equation thermal/slip, Emslie–Bonner–Peck
-spin-coat, Preston CMP, shot-grid) as generation modes + future dashboard Physics Lab.
-Stage 4: WM-811K (convert pkl → render die grids in our visual style → zero-shot → few-shot
-with pseudo-labels; image-level metrics only). Stage 5: analytics engine (die grid, negative
+Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, `tqdm`.
+
+## 9. Roadmap after Stage 4
+
+Stage 5: analytics engine (die grid, negative
 binomial yield model, systematic-vs-random $-decomposition, knowledge base, diagnosis JSON).
 Stage 6: stream simulator + Shewhart/EWMA/CUSUM. Stage 7: FastAPI. Stage 8: React/Vite/Tailwind
 dashboard (six views; user's React conventions: TS, typed props interfaces, Tailwind-only with

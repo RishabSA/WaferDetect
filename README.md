@@ -47,10 +47,14 @@ analytics — defect area, scratch orientation, and per-defect yield-loss attrib
   and two whole-image baselines for comparison: zone-density + Radon + SVM (the classical
   WM-811K method) and a multi-label ResNet-18. The 10k generation and data-scaling study run
   on GPU next.
-- **Later stages:** physics simulations of defect-forming mechanisms (thermal stress → slip
-  lines, spin-coating and CMP uniformity, stepper shot grids), validation on WM-811K real fab
-  data, a yield-economics and root-cause analytics engine, SPC excursion monitoring, and a
-  FastAPI + React dashboard. See `docs/superpowers/specs/` for the full design.
+- **Stage 3 — physics simulation suite (planned):** first-principles simulations that *cause*
+  defect patterns instead of drawing them — a heat-equation thermal solver whose stress field
+  places slip lines, Emslie–Bonner–Peck spin-coating and Preston CMP uniformity models for
+  rings/gradients, and a stepper shot-grid model with the repeating reticle-defect signature —
+  plugged into the generator as physics-informed generation modes.
+- **Later stages:** validation on WM-811K real fab data, a yield-economics and root-cause
+  analytics engine, SPC excursion monitoring, and a FastAPI + React dashboard.
+  See `docs/superpowers/specs/` for the full design.
 
 ## Setup and usage
 

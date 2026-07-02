@@ -42,7 +42,9 @@ def test_split_is_deterministic() -> None:
 
 
 def test_split_counts_and_disjointness() -> None:
-    split = compute_split(real_stems(), train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED)
+    split = compute_split(
+        real_stems(), train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED
+    )
     for name in split_names:
         assert len(split[name]) == EXPECTED_COUNTS[name]
     combined = split["train"] + split["val"] + split["test"]
@@ -59,7 +61,10 @@ def test_every_category_in_every_split() -> None:
 
 def test_tiny_category_does_not_raise() -> None:
     split = compute_split(
-        ["0001_center", "0002_center"], train_frac=TRAIN_FRAC, val_frac=VAL_FRAC, seed=SEED
+        ["0001_center", "0002_center"],
+        train_frac=TRAIN_FRAC,
+        val_frac=VAL_FRAC,
+        seed=SEED,
     )
     combined = split["train"] + split["val"] + split["test"]
     assert sorted(combined) == ["0001_center", "0002_center"]

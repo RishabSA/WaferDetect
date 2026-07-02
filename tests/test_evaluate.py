@@ -25,7 +25,9 @@ def make_images(tmp_path: Path) -> Path:
 
 def test_subset_image_list_combo(tmp_path: Path) -> None:
     images_dir = make_images(tmp_path)
-    assert [p.name for p in subset_image_list(images_dir, combo_token)] == ["0481_combo_a+b.jpg"]
+    assert [p.name for p in subset_image_list(images_dir, combo_token)] == [
+        "0481_combo_a+b.jpg"
+    ]
 
 
 def test_subset_image_list_tiny(tmp_path: Path) -> None:
@@ -43,10 +45,15 @@ def test_write_subset_yaml(tmp_path: Path) -> None:
     images_dir = make_images(tmp_path)
     base_yaml = tmp_path / "data.yaml"
     base_yaml.write_text(
-        yaml.safe_dump({"path": str(tmp_path), "val": "images/val", "names": {0: "center"}})
+        yaml.safe_dump(
+            {"path": str(tmp_path), "val": "images/val", "names": {0: "center"}}
+        )
     )
     subset_yaml = write_subset_yaml(
-        base_yaml, "combo", subset_image_list(images_dir, combo_token), tmp_path / "subsets"
+        base_yaml,
+        "combo",
+        subset_image_list(images_dir, combo_token),
+        tmp_path / "subsets",
     )
     data = yaml.safe_load(subset_yaml.read_text())
     list_file = Path(data["val"])
@@ -58,10 +65,15 @@ def test_write_subset_yaml(tmp_path: Path) -> None:
 def fake_metrics() -> SimpleNamespace:
     return SimpleNamespace(
         box=SimpleNamespace(
-            map50=0.8, map=0.6,
-            ap50=np.array([0.9]), ap=np.array([0.7]), ap_class_index=np.array([4]),
+            map50=0.8,
+            map=0.6,
+            ap50=np.array([0.9]),
+            ap=np.array([0.7]),
+            ap_class_index=np.array([4]),
         ),
-        seg=SimpleNamespace(map50=0.75, map=0.55, ap50=np.array([0.85]), ap=np.array([0.65])),
+        seg=SimpleNamespace(
+            map50=0.75, map=0.55, ap50=np.array([0.85]), ap=np.array([0.65])
+        ),
     )
 
 

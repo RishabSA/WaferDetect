@@ -14,6 +14,7 @@ from scripts.datagen.labels import (
     wafer_to_image,
     yolo_line,
 )
+from scripts.datagen.physics.builders import physics_field_builders
 from scripts.perception.annotations import load_class_names
 
 classes_file = Path("data/raw/classes.txt")
@@ -107,14 +108,23 @@ def generate_sample(
     class_names: list[str],
     rng: np.random.Generator,
     die_grid: int = 0,
+    physics_frac: float = 0.0,
 ) -> tuple[Image.Image, list[str]]:
     dots = []
     lines = []
     masks = []
 
     for category in categories:
+        builder = field_builders[category]
+        if (
+            physics_frac > 0.0
+            and category in physics_field_builders
+            and rng.random() < physics_frac
+        ):
+            builder = physics_field_builders[category]
+
         for _ in range(max_overlap_retries):
-            field = field_builders[category](grid_size, rng)
+            field = builder(grid_size, rng)
             mask = field_mask(field)
             if all(mask_iou(mask, other) <= combo_iou_limit for other in masks):
                 break
@@ -163,6 +173,12 @@ if __name__ == "__main__":
         help="Fraction of samples rendered with die-grid quantization (default: 0.0).",
     )
     parser.add_argument(
+        "--physics-frac",
+        type=float,
+        default=0.0,
+        help="Probability that a physics-covered class uses its physics builder (default: 0.0).",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,
@@ -185,7 +201,9 @@ if __name__ == "__main__":
         categories = choose_categories(rng, args.combo_frac)
         die_grid = int(rng.integers(26, 61)) if rng.random() < args.die_grid_frac else 0
 
-        image, lines = generate_sample(categories, class_names, rng, die_grid)
+        image, lines = generate_sample(
+            categories, class_names, rng, die_grid, args.physics_frac
+        )
         name = sample_name(index, categories)
         image.save(images_dir / f"{name}.jpg")
         (labels_dir / f"{name}.txt").write_text("\n".join(lines) + "\n")
@@ -197,6 +215,7 @@ if __name__ == "__main__":
         "count": args.count,
         "combo_frac": args.combo_frac,
         "die_grid_frac": args.die_grid_frac,
+        "physics_frac": args.physics_frac,
         "seed": args.seed,
         "image_size": image_size,
         "grid_size": grid_size,

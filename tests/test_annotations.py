@@ -20,7 +20,9 @@ EXPECTED_PAIR_COUNT = 580
 
 def test_parse_valid_line() -> None:
     instance = parse_label_line(VALID_LINE)
-    assert instance == DefectInstance(class_id=4, polygon=[(0.1, 0.2), (0.3, 0.4), (0.5, 0.6)])
+    assert instance == DefectInstance(
+        class_id=4, polygon=[(0.1, 0.2), (0.3, 0.4), (0.5, 0.6)]
+    )
 
 
 def test_non_integer_class_raises() -> None:

@@ -56,7 +56,9 @@ def test_generate_single_sample() -> None:
 
 def test_generate_combo_sample() -> None:
     class_names = load_class_names(classes_file)
-    _, lines = generate_sample(["scratch", "edge_ring"], class_names, np.random.default_rng(0))
+    _, lines = generate_sample(
+        ["scratch", "edge_ring"], class_names, np.random.default_rng(0)
+    )
     assert len(lines) == 2
 
 
@@ -76,7 +78,11 @@ def test_choose_categories_shapes() -> None:
 
     assert all(len(categories) == 1 for categories in singles)
     assert all(2 <= len(categories) <= 4 for categories in combos)
-    assert all(category in field_builders for categories in singles + combos for category in categories)
+    assert all(
+        category in field_builders
+        for categories in singles + combos
+        for category in categories
+    )
 
 
 def test_sample_name_convention() -> None:
