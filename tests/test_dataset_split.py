@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-import waferdetect.perception.dataset as dataset
-from waferdetect.perception.dataset import (
+import scripts.perception.dataset as dataset
+from scripts.perception.dataset import (
     split_names,
     compute_split,
     read_manifests,

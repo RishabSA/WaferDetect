@@ -40,10 +40,13 @@ analytics — defect area, scratch orientation, and per-defect yield-loss attrib
   augmentation policy (mosaic disabled — collaged part-wafers are physically impossible;
   full rotation/flips — wafer scenes are rotation-valid), and an evaluation harness that
   reports per-class box/mask mAP plus dedicated combo and tiny-scratch subsets.
-- **Stage 2 — data engine (planned):** a parametric generator in which each defect class is a
-  2D intensity field over the wafer disk; the same field samples the failing-die dots *and*
-  produces the polygon label, scaling the dataset to 10k+ images with a data-scaling study and
-  classical (density + Radon + SVM) and CNN baselines for comparison.
+- **Stage 2 — data engine (implemented):** a parametric generator in which each defect class
+  is a 2D intensity field over the wafer disk; the same field samples the failing-die dots
+  *and* produces the polygon label, scaling the dataset to 10k+ images. Includes per-category
+  visual QA sheets, a layout builder that always evaluates against the frozen raw test split,
+  and two whole-image baselines for comparison: zone-density + Radon + SVM (the classical
+  WM-811K method) and a multi-label ResNet-18. The 10k generation and data-scaling study run
+  on GPU next.
 - **Later stages:** physics simulations of defect-forming mechanisms (thermal stress → slip
   lines, spin-coating and CMP uniformity, stepper shot grids), validation on WM-811K real fab
   data, a yield-economics and root-cause analytics engine, SPC excursion monitoring, and a
@@ -57,13 +60,16 @@ Requires Python ≥ 3.13 and [uv](https://docs.astral.sh/uv/).
 uv sync
 
 # build the YOLO dataset layout + split manifests from data/raw
-uv run python -m waferdetect.perception.dataset --force
+uv run python -m scripts.perception.dataset --force
 
 # train (local Apple Silicon: --device mps; CUDA: --device 0)
-uv run python -m waferdetect.perception.train --device mps
+uv run python -m scripts.perception.train --device mps
 
 # evaluate the trained model on the frozen test split + subsets
-uv run python -m waferdetect.perception.evaluate
+uv run python -m scripts.perception.evaluate
+
+# generate synthetic wafers with auto-derived polygon labels (Stage 2 data engine)
+uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000
 
 # run the test suite
 uv run pytest
@@ -78,12 +84,21 @@ recipe); outputs land in `runs/train/<name>/` and `runs/eval/<name>/`.
 data/raw/                  source dataset: images, labels, overlays, classes.txt (immutable)
 data/splits/               frozen train/val/test manifests (seed 42)
 data/yolo/                 derived YOLO layout (generated, gitignored)
-src/waferdetect/
+scripts/
   perception/
     annotations.py         label parsing (DefectInstance, class-name registry)
     dataset.py             stratified split, manifests, YOLO layout builder (CLI)
     train.py               YOLO26-seg training CLI with the wafer augmentation policy
     evaluate.py            test-split + combo/tiny-subset evaluation, metrics.json + report.md
+  datagen/
+    fields.py              24 per-category intensity-field builders over the wafer disk
+    labels.py              field -> polygon auto-labeling, YOLO line writer, mask IoU
+    generator.py           dot sampling, rendering, combos, die-grid quantization (CLI)
+    review.py              per-category visual QA sheets with polygon overlays (CLI)
+    layout.py              generated set -> YOLO layout, test wired to the raw split (CLI)
+  baselines/
+    classical.py           zone-density + Radon features + SVM baseline (CLI)
+    resnet.py              multi-label ResNet-18 baseline (CLI)
 colab/                     GPU run recipes
 docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite

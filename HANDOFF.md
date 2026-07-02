@@ -80,17 +80,21 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   seed 42. **The 87-image raw test split is the permanent measuring stick**: every model in
   every stage (including generated-data models) is evaluated against it.
 - `data/yolo/` — derived YOLO layout (copies + `data.yaml`), gitignored, rebuild with
-  `uv run python -m waferdetect.perception.dataset --force`.
+  `uv run python -m scripts.perception.dataset --force`.
 - The dataset is synthetic (rendered, perfectly balanced). WM-811K (Stage 4) is the real-fab
   counterpart: 811k die-grid maps, ~173k labeled, 8 classes (all a subset of ours),
   image-level labels only — no polygons (drives the pseudo-label design in the spec §6).
 
 ## 4. Codebase map and exact interfaces (post-cleanup — trust THIS, not the Stage 1 plan)
 
-Python ≥ 3.13, `uv`-managed, hatchling src layout (`src/waferdetect/`), run everything from
-repo root. Tests in `tests/` (pytest; they use the real `data/raw` files freely).
+Python ≥ 3.13, `uv`-managed. **All code lives in `scripts/`** (`scripts/perception/`,
+`scripts/datagen/`, `scripts/baselines/`, and future subpackages) as plain modules — there is
+NO installed package and NO build system; `pyproject.toml` only manages dependencies, and
+pytest resolves `from scripts...` imports via `[tool.pytest.ini_options] pythonpath = ["."]`.
+Run everything from repo root (`uv run python -m scripts....` — `-m` puts the cwd on
+`sys.path`). Tests in `tests/` (pytest; they use the real `data/raw` files freely).
 
-`src/waferdetect/perception/annotations.py` — label-format layer:
+`scripts/perception/annotations.py` — label-format layer:
 
 - `@dataclass class DefectInstance: class_id: int; polygon: list[tuple[float, float]]`
   (**renamed from `Instance`** — older docs/plans may say `Instance`).
@@ -101,7 +105,7 @@ repo root. Tests in `tests/` (pytest; they use the real `data/raw` files freely)
 - `load_dataset(images_dir: Path, labels_dir: Path) -> dict` — `{stem: [instances]}`; missing
   label surfaces as `FileNotFoundError` from `open`.
 
-`src/waferdetect/perception/dataset.py` — dataset preparation:
+`scripts/perception/dataset.py` — dataset preparation:
 
 - module globals: `classes_file`, `raw_images_dir`, `raw_labels_dir`, `splits_dir`, `yolo_dir`
   (lowercase `Path` constants), `split_names = ("train", "val", "test")`.
@@ -119,7 +123,7 @@ repo root. Tests in `tests/` (pytest; they use the real `data/raw` files freely)
 - CLI (`__main__` inline): `--force`, `--train-frac 0.70`, `--val-frac 0.15`, `--seed 42`.
   Guards `data/yolo` with `FileExistsError` unless `--force` (kept guard).
 
-`src/waferdetect/perception/train.py` — pure CLI script (no importable functions):
+`scripts/perception/train.py` — pure CLI script (no importable functions):
 
 - args: `--data data/yolo/data.yaml`, `--name stage1_baseline`, `--epochs 200`,
   `--device cpu` (pass `mps` locally, `0` on CUDA; **"auto" is NOT a valid ultralytics
@@ -130,7 +134,7 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
   impossible scenes. Rotation/flips are safe because wafer scenes are rotation/mirror valid and
   ultralytics transforms polygons with pixels. HSV off because images are near-binary.
 
-`src/waferdetect/perception/evaluate.py`:
+`scripts/perception/evaluate.py`:
 
 - module globals: `classes_file`, `yolo_dir`, `runs_dir`, `combo_token = "_combo_"`,
   `tiny_token = "_edge_scratch_tiny"`.
@@ -148,7 +152,7 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
   Subset images intentionally always come from `data/yolo/images/test` (the raw test split) —
   correct for all stages.
 
-`src/waferdetect/datagen/fields.py` — Stage 2 field library:
+`scripts/datagen/fields.py` — Stage 2 field library:
 
 - `disk_coordinates(grid: int) -> tuple`, `gaussian_blob(...)`, `annulus(...)`, `angular_mask(...)`,
   `curve_band(...)`
@@ -157,7 +161,7 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
 - `category_class(category: str) -> str` maps all edge-scratch size categories to
   `edge_scratch`
 
-`src/waferdetect/datagen/labels.py` — field-to-label layer:
+`scripts/datagen/labels.py` — field-to-label layer:
 
 - `field_mask(field, threshold_frac=0.35) -> np.ndarray`
 - `field_to_polygon(field, threshold_frac=0.35, tolerance_frac=0.01) -> list[tuple[float, float]]`
@@ -166,7 +170,7 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
 - `yolo_line(class_id, polygon) -> str`
 - `mask_iou(a, b) -> float`
 
-`src/waferdetect/datagen/generator.py` — synthetic wafer generator:
+`scripts/datagen/generator.py` — synthetic wafer generator:
 
 - module globals: `image_size = 640`, `grid_size = 256`, `wafer_frac = 0.97`,
   combo weights/IoU retry controls, dot-count ranges
@@ -174,23 +178,23 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0, project="runs/train"`.
   `generate_sample`, `sample_name`
 - CLI writes `images/`, `labels/`, and `manifest.json`
 
-`src/waferdetect/datagen/review.py`:
+`scripts/datagen/review.py`:
 
 - `write_review_sheets(generated_dir: Path, per_category: int = 5) -> Path`
 
-`src/waferdetect/datagen/layout.py`:
+`scripts/datagen/layout.py`:
 
 - `raw_test_images = Path("data/yolo/images/test")`
 - `build_layout(generated_dir, out_dir, val_frac, seed, limit=0) -> Path`; train/val comes from
   generated data, `test:` in `data.yaml` points at the frozen raw YOLO test split
 
-`src/waferdetect/baselines/classical.py`:
+`scripts/baselines/classical.py`:
 
 - `dot_coordinates`, `density_features`, `radon_features`, `feature_vector`
 - CLI trains StandardScaler + RBF SVM on raw single-pattern train wafers and writes
   `runs/baselines/classical/metrics.json`; combo exact-match is recorded as 0
 
-`src/waferdetect/baselines/resnet.py`:
+`scripts/baselines/resnet.py`:
 
 - `multi_hot(label_path, n_classes) -> torch.Tensor`
 - `WaferDataset(images_dir, labels_dir, n_classes)`
@@ -241,9 +245,10 @@ The user rewrote generated code once to enforce this and does not want to again.
   and takes tunables (seed, fractions, epochs, model name, physics constants) as argparse
   arguments with defaults. Shared defaults (e.g. seed 42) are repeated per script, not
   centralized.
-- Lowercase snake_case for ALL module-level constants and globals in `src/` — never
+- Lowercase snake_case for ALL module-level constants and globals in `scripts/` — never
   UPPER_SNAKE_CASE.
-- Relative paths assume repo-root cwd; invoke everything as `uv run python -m waferdetect....`.
+- Relative paths assume repo-root cwd; invoke everything as `uv run python -m scripts....`.
+- All code lives under `scripts/` (no `src/`, no installed package, no build system).
 - CLI entry is an inline `if __name__ == "__main__":` block with argparse — no `main()`
   wrapper. Every argument carries `type=` and a help string ending `"(default: X)."`.
   NEVER combine `type=` with `action="store_true"` (argparse crashes).
@@ -286,7 +291,7 @@ The user rewrote generated code once to enforce this and does not want to again.
 **Tooling**
 
 - `uv` exclusively: `uv add`, `uv add --dev`, `uv run`, `uv sync`. Never pip/conda/poetry.
-  `uv run ruff check src tests` should stay clean.
+  `uv run ruff check scripts tests` should stay clean.
 
 ## 7. Git and workflow rules — ABSOLUTE
 
@@ -308,9 +313,9 @@ The user rewrote generated code once to enforce this and does not want to again.
 Code tasks are complete. Remaining execution is gated:
 
 1. Generate the pilot set:
-   `uv run python -m waferdetect.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`
+   `uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`
 2. Render review sheets:
-   `uv run python -m waferdetect.datagen.review --generated-dir data/generated/pilot`
+   `uv run python -m scripts.datagen.review --generated-dir data/generated/pilot`
 3. STOP for user approval of `data/generated/pilot/review/*.png` before generating 10k.
 4. After approval, follow `colab/stage2_data_engine.md` for the 10k generation, YOLO scaling
    study at {500,1k,2k,5k,10k}, ResNet baseline training, and exit-gate comparison.

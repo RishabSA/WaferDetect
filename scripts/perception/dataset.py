@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 import yaml
 
-from waferdetect.perception.annotations import load_class_names, load_dataset
+from scripts.perception.annotations import load_class_names, load_dataset
 
 classes_file = Path("data/raw/classes.txt")
 raw_images_dir = Path("data/raw/images")

@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-import waferdetect.perception.dataset as dataset
-from waferdetect.perception.dataset import (
+import scripts.perception.dataset as dataset
+from scripts.perception.dataset import (
     build_yolo_layout,
     compute_split,
     split_names,

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 
-from waferdetect.baselines.resnet import WaferDataset, multi_hot
+from scripts.baselines.resnet import WaferDataset, multi_hot
 
 
 def make_pair(tmp_path: Path, stem: str, lines: str) -> None:

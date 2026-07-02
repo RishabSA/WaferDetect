@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from waferdetect.perception.annotations import (
+from scripts.perception.annotations import (
     DefectInstance,
     load_class_names,
     load_dataset,

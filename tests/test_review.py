@@ -2,9 +2,9 @@ from pathlib import Path
 
 import numpy as np
 
-from waferdetect.datagen.generator import generate_sample, sample_name
-from waferdetect.datagen.review import write_review_sheets
-from waferdetect.perception.annotations import load_class_names
+from scripts.datagen.generator import generate_sample, sample_name
+from scripts.datagen.review import write_review_sheets
+from scripts.perception.annotations import load_class_names
 
 classes_file = Path("data/raw/classes.txt")
 

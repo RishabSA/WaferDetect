@@ -1,14 +1,14 @@
 import numpy as np
 
-from waferdetect.datagen.fields import gaussian_blob, lift_pin_field
-from waferdetect.datagen.labels import (
+from scripts.datagen.fields import gaussian_blob, lift_pin_field
+from scripts.datagen.labels import (
     field_mask,
     field_to_polygon,
     mask_iou,
     wafer_to_image,
     yolo_line,
 )
-from waferdetect.perception.annotations import parse_label_line
+from scripts.perception.annotations import parse_label_line
 
 grid = 128
 
@@ -38,7 +38,7 @@ def test_multi_component_uses_hull() -> None:
 
 
 def test_rim_touching_field_closes() -> None:
-    from waferdetect.datagen.fields import half_wafer_field
+    from scripts.datagen.fields import half_wafer_field
 
     polygon = field_to_polygon(half_wafer_field(grid, np.random.default_rng(1)))
     assert len(polygon) >= 3

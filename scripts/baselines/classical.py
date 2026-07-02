@@ -11,8 +11,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from tqdm import tqdm
 
-from waferdetect.datagen.fields import category_class
-from waferdetect.perception.dataset import read_manifests, stem_category
+from scripts.datagen.fields import category_class
+from scripts.perception.dataset import read_manifests, stem_category
 
 raw_images_dir = Path("data/raw/images")
 out_dir = Path("runs/baselines/classical")

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import yaml
 
-from waferdetect.perception.evaluate import (
+from scripts.perception.evaluate import (
     combo_token,
     metrics_to_dict,
     render_report,

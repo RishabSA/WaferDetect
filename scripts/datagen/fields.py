@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from functools import partial
 import numpy as np
 from scipy.ndimage import gaussian_filter

@@ -1,6 +1,6 @@
 import numpy as np
 
-from waferdetect.baselines.classical import (
+from scripts.baselines.classical import (
     density_features,
     dot_coordinates,
     feature_vector,

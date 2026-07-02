@@ -7,8 +7,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from waferdetect.perception.annotations import load_label_file
-from waferdetect.perception.dataset import stem_category
+from scripts.perception.annotations import load_label_file
+from scripts.perception.dataset import stem_category
 
 
 def write_review_sheets(generated_dir: Path, per_category: int = 5) -> Path:

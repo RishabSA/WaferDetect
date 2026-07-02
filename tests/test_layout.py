@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from waferdetect.datagen.layout import build_layout
+from scripts.datagen.layout import build_layout
 
 
 def make_generated(tmp_path: Path, count: int = 20) -> Path:

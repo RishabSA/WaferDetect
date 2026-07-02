@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from waferdetect.datagen.fields import field_builders
-from waferdetect.datagen.generator import (
+from scripts.datagen.fields import field_builders
+from scripts.datagen.generator import (
     background_dots,
     choose_categories,
     generate_sample,
@@ -13,7 +13,7 @@ from waferdetect.datagen.generator import (
     sample_dots,
     sample_name,
 )
-from waferdetect.perception.annotations import load_class_names, parse_label_line
+from scripts.perception.annotations import load_class_names, parse_label_line
 
 classes_file = Path("data/raw/classes.txt")
 

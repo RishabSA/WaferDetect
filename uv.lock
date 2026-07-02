@@ -1307,7 +1307,7 @@ wheels = [
 [[package]]
 name = "waferdetect"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "matplotlib" },
     { name = "pillow" },

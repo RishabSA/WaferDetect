@@ -4,8 +4,8 @@ import random
 import shutil
 from pathlib import Path
 
-from waferdetect.perception.annotations import load_class_names
-from waferdetect.perception.dataset import stem_category, write_data_yaml
+from scripts.perception.annotations import load_class_names
+from scripts.perception.dataset import stem_category, write_data_yaml
 
 classes_file = Path("data/raw/classes.txt")
 raw_test_images = Path("data/yolo/images/test")

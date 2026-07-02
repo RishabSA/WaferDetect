@@ -6,15 +6,15 @@ import numpy as np
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 
-from waferdetect.datagen.fields import category_class, field_builders
-from waferdetect.datagen.labels import (
+from scripts.datagen.fields import category_class, field_builders
+from scripts.datagen.labels import (
     field_mask,
     field_to_polygon,
     mask_iou,
     wafer_to_image,
     yolo_line,
 )
-from waferdetect.perception.annotations import load_class_names
+from scripts.perception.annotations import load_class_names
 
 classes_file = Path("data/raw/classes.txt")
 

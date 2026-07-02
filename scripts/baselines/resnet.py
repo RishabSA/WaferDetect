@@ -11,8 +11,8 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.models import ResNet18_Weights, resnet18
 from tqdm import tqdm
 
-from waferdetect.perception.annotations import load_class_names, load_label_file
-from waferdetect.perception.dataset import stem_category
+from scripts.perception.annotations import load_class_names, load_label_file
+from scripts.perception.dataset import stem_category
 
 classes_file = Path("data/raw/classes.txt")
 yolo_dir = Path("data/yolo")

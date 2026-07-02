@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 from ultralytics import YOLO
 
-from waferdetect.perception.annotations import load_class_names
+from scripts.perception.annotations import load_class_names
 
 classes_file = Path("data/raw/classes.txt")
 yolo_dir = Path("data/yolo")

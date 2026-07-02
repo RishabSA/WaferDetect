@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from waferdetect.datagen.fields import category_class, disk_coordinates, field_builders
-from waferdetect.perception.annotations import load_class_names
+from scripts.datagen.fields import category_class, disk_coordinates, field_builders
+from scripts.perception.annotations import load_class_names
 
 classes_file = Path("data/raw/classes.txt")
 grid = 128
