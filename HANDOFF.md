@@ -83,6 +83,12 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   donut masks); edge_scratch_tiny subset 0.995. **0.842 is the frozen Gate B bar.** Weights in
   `runs/train/stage1_baseline/weights/best.pt` (user's `waferdetect_runs/`). Known data wart:
   ultralytics deduped duplicate label lines in `0170_swirl` (3) and one combo file (1).
+- **Stage 8 (dashboard frontend): code COMPLETE, frontend 5/5 tests passing, Python 165/165
+  tests passing.** Implemented React 19 + TypeScript + Vite + Tailwind v4 in `frontend/`:
+  app shell, typed API client, shared wafer/field/report components, Wafer Explorer,
+  Detection Viewer, Yield Analytics, Physics Lab, Reports, and a disabled Line Monitor nav slot
+  for deferred Stage 6. Remaining Stage 8 work is the human/manual browser gate against the live
+  API in both color schemes.
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in
@@ -159,7 +165,7 @@ Run everything from repo root (`uv run python -m scripts....` — `-m` puts the 
 
 - args: `--data data/yolo/data.yaml`, `--name stage1_baseline`, `--epochs 200`,
   `--device cpu` (pass `mps` locally, `0` on CUDA; **"auto" is NOT a valid ultralytics
-  device**), `--model-name yolo26m-seg.pt`, `--project`, `--resume`, `--seed 42`.
+  device**), `--model-name yolo26x-seg.pt`, `--project`, `--resume`, `--seed 42`.
 - fixed training policy dict: `imgsz=640, patience=50, mosaic=0.0, degrees=180.0, flipud=0.5,
 fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` locally and
   `/content/waferdetect_runs/train` when the repo is run from mounted Colab Drive, because
@@ -283,7 +289,7 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 `scripts/wm811k/manifests.py`:
 
 - `build_manifests(frame, seed, eval_cap=2000, calibration_per_class=50,
-  fewshot_reserve=600, none_calibration=200, none_eval=2000) -> dict[str, list[int]]`
+fewshot_reserve=600, none_calibration=200, none_eval=2000) -> dict[str, list[int]]`
 - `write_manifests(manifests, frame, out_dir) -> None`
 - `read_manifest(path: Path) -> list[int]`
 
@@ -416,6 +422,21 @@ Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experime
 `wafe_map.py`, `plot_annotated.py` are the user's exploratory scripts — **do not modify,
 "fix", or delete them**; `.superpowers/` is orchestration scratch — ignore it.
 
+`frontend/` — Stage 8 dashboard:
+
+- Vite/React/Tailwind configs: `package.json`, `vite.config.ts`, three tsconfigs,
+  `index.html`, `src/index.css`.
+- `src/api.ts` — typed Stage 7 response interfaces, relative `/api` client, `waferImageUrl`,
+  and small `useApi` hook.
+- `src/format.ts` — `dollars`, `percent`, `png`.
+- `src/App.tsx` — persistent sidebar, active routes, disabled Line Monitor Stage 6 badge.
+- Shared components:
+  `components/WaferCanvas.tsx`, `FieldHeatmap.tsx`, `DiagnosisCard.tsx`, `ParamField.tsx`.
+- Views:
+  `views/WaferExplorer.tsx`, `DetectionViewer.tsx`, `YieldAnalytics.tsx`,
+  `PhysicsLab.tsx`, `Reports.tsx`.
+- Frontend tests: `src/format.test.ts`, `src/components/WaferCanvas.test.tsx`.
+
 ## 5. Load-bearing decisions and their reasons
 
 - **Detection/segmentation over classification** — combos require multiple labeled instances
@@ -423,7 +444,7 @@ Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experime
 - **Frozen raw test split (seed 42) as the universal bar** — Stage 2's generated-data layouts
   write a `data.yaml` whose `test:` key is the absolute path to `data/yolo/images/test`, so
   scores across stages are directly comparable. Never retune or regenerate this split.
-- **Model: YOLO26m-seg default** (user's choice; s/l variants only as capacity ablation),
+- **Model: YOLO26x-seg default** (user's choice),
   COCO-pretrained. mAP conventions: report box AND mask, mAP50 and mAP50-95, per-class; mask
   mAP50 is the headline; combo-subset-vs-overall gap is the honesty metric.
 - **Generator design (Stage 2): the intensity field is the single source of truth** — the same
@@ -518,6 +539,19 @@ The user rewrote generated code once to enforce this and does not want to again.
 
 ## 8. Next work
 
+### Stage 8 manual dashboard gate
+
+Code tasks are complete. Remaining work is manual browser QA:
+
+1. Start the backend:
+   `uv run python -m scripts.api.main --model-path waferdetect_runs/train/stage1_baseline/weights/best.pt`
+2. Start the frontend:
+   `cd frontend && npm run dev`
+3. Walk Explorer filters, a combo wafer Detection Viewer run, Reports print preview,
+   Yield Analytics Pareto/wafer panel, and all four Physics Lab tabs.
+4. Check both light/dark OS appearances and a narrow viewport.
+5. STOP for user review of response shapes and dashboard ergonomics before Stage 9.
+
 ### Stage 7 live API gate
 
 Code tasks are complete. Remaining manual gate requires the real Stage 1 checkpoint locally:
@@ -589,9 +623,8 @@ unchanged. Physics tests are structural, never absolute-calibrated.
 
 Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, `tqdm`.
 
-## 9. Roadmap after Stage 7
+## 9. Roadmap after Stage 8
 
-Stage 6 (deferred, still owed): stream simulator + Shewhart/EWMA/CUSUM, plus its
-`/api/monitor/*` router. Stage 8: React/Vite/Tailwind dashboard (six views; user's React
-conventions: TS, typed props interfaces, Tailwind-only with dark: variants, Recharts,
-react-icons; Line Monitor view depends on Stage 6). Stage 9: polish/release. Then F1/F2.
+Stage 6 (deferred, still owed): stream simulator + Shewhart/EWMA/CUSUM, its `/api/monitor/*`
+router, and then the dashboard's Line Monitor view (replacing the disabled nav entry).
+Stage 9: polish/release. Then F1/F2.

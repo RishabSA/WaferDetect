@@ -37,8 +37,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-name",
         type=str,
-        default="yolo26m-seg.pt",
-        help="YOLO segmentation model name *.pt to load (default: yolo26m-seg.pt).",
+        default="yolo26x-seg.pt",
+        help="YOLO segmentation model name *.pt to load (default: yolo26x-seg.pt).",
     )
     parser.add_argument(
         "--project",
