@@ -6,6 +6,7 @@ data/yolo/
 data/yolo_smoke/
 .superpowers/
 
+*.pkl
 *.pt
 
 # Byte-compiled / optimized / DLL files

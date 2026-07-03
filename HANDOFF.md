@@ -83,12 +83,17 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   donut masks); edge_scratch_tiny subset 0.995. **0.842 is the frozen Gate B bar.** Weights in
   `runs/train/stage1_baseline/weights/best.pt` (user's `waferdetect_runs/`). Known data wart:
   ultralytics deduped duplicate label lines in `0170_swirl` (3) and one combo file (1).
-- **Stage 8 (dashboard frontend): code COMPLETE, frontend 5/5 tests passing, Python 165/165
-  tests passing.** Implemented React 19 + TypeScript + Vite + Tailwind v4 in `frontend/`:
-  app shell, typed API client, shared wafer/field/report components, Wafer Explorer,
-  Detection Viewer, Yield Analytics, Physics Lab, Reports, and a disabled Line Monitor nav slot
-  for deferred Stage 6. Remaining Stage 8 work is the human/manual browser gate against the live
-  API in both color schemes.
+- **Stage 8 (dashboard frontend): code COMPLETE + UI REDESIGN (2026-07-02), frontend 6/6 tests
+  passing, Python 169/169 tests passing.** React 19 + TypeScript + Vite + Tailwind v4 in
+  `frontend/`, redesigned dark-native ("fab control room": cyan/violet on near-black, glassy
+  cards, scan-line loading animation, count-up hero numbers). The home view is now **Analyze**
+  (`views/Analyze.tsx`): boots on demo wafer `0101_scratch`, auto-fetches on wafer pick or
+  image upload (no button), three canvas views (detections / defect dots / Radon sinogram),
+  headline loss+yield front and center, inline expandable report — the separate Detection
+  Viewer and Reports views were deleted. Backed by new `POST /api/analyze` (stem XOR file →
+  YOLO detections + diagnosis + yield + display dots + sinogram in one response). Fixed
+  `/api/yield/wafer/{stem}` missing `total_loss_dollars`/`yield_random` (crashed Yield
+  Analytics). Live-verified via curl (stem + upload paths). Remaining: human browser gate.
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in
@@ -425,16 +430,18 @@ Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experime
 `frontend/` — Stage 8 dashboard:
 
 - Vite/React/Tailwind configs: `package.json`, `vite.config.ts`, three tsconfigs,
-  `index.html`, `src/index.css`.
-- `src/api.ts` — typed Stage 7 response interfaces, relative `/api` client, `waferImageUrl`,
-  and small `useApi` hook.
-- `src/format.ts` — `dollars`, `percent`, `png`.
-- `src/App.tsx` — persistent sidebar, active routes, disabled Line Monitor Stage 6 badge.
-- Shared components:
-  `components/WaferCanvas.tsx`, `FieldHeatmap.tsx`, `DiagnosisCard.tsx`, `ParamField.tsx`.
-- Views:
-  `views/WaferExplorer.tsx`, `DetectionViewer.tsx`, `YieldAnalytics.tsx`,
-  `PhysicsLab.tsx`, `Reports.tsx`.
+  `index.html`, `src/index.css` (theme background, `.bg-grid`, scan/fade keyframes).
+- `src/api.ts` — typed Stage 7/analyze response interfaces, relative `/api` client,
+  `waferImageUrl`, `waferCategories`, and small `useApi` hook.
+- `src/format.ts` — `dollars`, `percent`, `png`. `src/ui.ts` — shared Tailwind class
+  constants (card/select/input/buttons/chip). `src/useCountUp.ts` — rAF count-up hook.
+- `src/App.tsx` — dark sidebar shell, routes (`/` Analyze, `/explorer`, `/yield`,
+  `/physics`), disabled Line Monitor Stage 6 badge.
+- Shared components: `components/WaferCanvas.tsx` (circular canvas, polygon overlays,
+  dot markers, scan animation), `MetricTile.tsx`, `FieldHeatmap.tsx`, `DiagnosisCard.tsx`,
+  `ParamField.tsx`.
+- Views: `views/Analyze.tsx` (home: upload + gallery picker + view tabs + inline report),
+  `WaferExplorer.tsx`, `YieldAnalytics.tsx`, `PhysicsLab.tsx`.
 - Frontend tests: `src/format.test.ts`, `src/components/WaferCanvas.test.tsx`.
 
 ## 5. Load-bearing decisions and their reasons
@@ -547,9 +554,10 @@ Code tasks are complete. Remaining work is manual browser QA:
    `uv run python -m scripts.api.main --model-path waferdetect_runs/train/stage1_baseline/weights/best.pt`
 2. Start the frontend:
    `cd frontend && npm run dev`
-3. Walk Explorer filters, a combo wafer Detection Viewer run, Reports print preview,
-   Yield Analytics Pareto/wafer panel, and all four Physics Lab tabs.
-4. Check both light/dark OS appearances and a narrow viewport.
+3. Walk the Analyze home view (boot on demo wafer, gallery pick, image upload, all three
+   canvas views, expandable report), Explorer filters, Yield Analytics Pareto/wafer panel,
+   and all four Physics Lab tabs.
+4. Check a narrow viewport (the UI is dark-native; there is no light theme).
 5. STOP for user review of response shapes and dashboard ergonomics before Stage 9.
 
 ### Stage 7 live API gate

@@ -7,13 +7,13 @@ interface FieldHeatmapProps {
 
 const FieldHeatmap = ({ title, image }: FieldHeatmapProps) => {
   return (
-    <figure className="flex flex-col items-center gap-1">
+    <figure className="flex flex-col items-center gap-1.5">
       <img
         src={png(image)}
         alt={title}
-        className="aspect-square w-full max-w-xs rounded-md border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900"
+        className="aspect-square w-full max-w-xs rounded-xl border border-white/10 bg-white/5"
       />
-      <figcaption className="text-xs text-neutral-500 dark:text-neutral-400">{title}</figcaption>
+      <figcaption className="text-xs tracking-wide text-neutral-400 uppercase">{title}</figcaption>
     </figure>
   );
 };

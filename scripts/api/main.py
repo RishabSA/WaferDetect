@@ -28,9 +28,17 @@ def create_app(model_path: Path | None) -> FastAPI:
     def health() -> dict:
         return {"status": "ok", "model_loaded": app.state.model is not None}
 
-    from scripts.api.routers import detect, diagnose, generate, physics, wafers, yields
+    from scripts.api.routers import (
+        analyze,
+        detect,
+        diagnose,
+        generate,
+        physics,
+        wafers,
+        yields,
+    )
 
-    for router_module in (detect, diagnose, generate, physics, wafers, yields):
+    for router_module in (analyze, detect, diagnose, generate, physics, wafers, yields):
         app.include_router(router_module.router)
 
     return app

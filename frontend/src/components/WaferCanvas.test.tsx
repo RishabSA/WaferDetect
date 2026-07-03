@@ -22,4 +22,13 @@ describe("WaferCanvas", () => {
     const { container } = render(<WaferCanvas imageUrl="/x.jpg" overlays={overlays} />);
     expect(container.querySelectorAll("polygon").length).toBe(1);
   });
+
+  it("renders dot markers when provided", () => {
+    const dots: [number, number][] = [
+      [0.5, 0.5],
+      [0.2, 0.3],
+    ];
+    const { container } = render(<WaferCanvas imageUrl="/x.jpg" overlays={[]} dots={dots} />);
+    expect(container.querySelectorAll("circle").length).toBe(2);
+  });
 });

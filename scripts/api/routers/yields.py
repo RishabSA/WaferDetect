@@ -18,6 +18,7 @@ router = APIRouter()
 def yield_wafer(stem: str, die_mm: float = 6.0, die_value: float = 25.0) -> dict:
     dots, detections = wafer_dots_and_detections(stem)
     polygons = [polygon for _, _, polygon in detections]
+    economics = decompose(dots, polygons, die_mm, die_value)
 
     summary = wafer_summary(dots, die_mm)
     failed_fraction = 1 - summary["yield"]
@@ -28,12 +29,16 @@ def yield_wafer(stem: str, die_mm: float = 6.0, die_value: float = 25.0) -> dict
     )
 
     summary["alpha"] = estimate_alpha(quadrat_counts(dots)) if len(dots) else None
+    summary["yield_random"] = economics["yield_random"]
+    summary["total_loss_dollars"] = sum(
+        region["dollars"] for region in economics["regions"]
+    )
 
     return {
         "summary": summary,
         "radial": radial_yield(dots, die_mm),
         "zones": zone_yields(dots, die_mm),
-        "regions": decompose(dots, polygons, die_mm, die_value)["regions"],
+        "regions": economics["regions"],
     }
 
 

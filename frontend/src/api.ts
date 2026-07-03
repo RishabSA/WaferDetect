@@ -86,6 +86,22 @@ export interface YieldPanel {
   regions: YieldLoss[];
 }
 
+export interface AnalyzeDetection extends DiagnosisDetection {
+  polygon: [number, number][];
+}
+
+export interface AnalyzeResponse {
+  stem: string | null;
+  image: string;
+  dots: [number, number][];
+  sinogram: string;
+  detections: AnalyzeDetection[];
+  wafer_summary: WaferSummary;
+  radial: number[];
+  zones: { center: number; mid: number; edge: number };
+  ground_truth: string[] | null;
+}
+
 export interface ParetoResponse {
   wafers: number;
   pareto: [string, number][];
@@ -150,11 +166,22 @@ export const api = {
     const query = new URLSearchParams(entries);
     return request<WaferList>(`/api/wafers?${query}`);
   },
-  waferDetail: (stem: string) => request<WaferDetail>(`/api/wafers/${stem}`),
+  waferDetail: (stem: string) => request<WaferDetail>(`/api/wafers/${encodeURIComponent(stem)}`),
   detect: (stem: string) =>
-    request<{ detections: Detection[] }>(`/api/detect?stem=${stem}`, { method: "POST" }),
-  diagnose: (stem: string) => request<DiagnosisReport>(`/api/diagnose/${stem}`),
-  yieldWafer: (stem: string) => request<YieldPanel>(`/api/yield/wafer/${stem}`),
+    request<{ detections: Detection[] }>(`/api/detect?stem=${encodeURIComponent(stem)}`, {
+      method: "POST",
+    }),
+  analyze: (stem: string) =>
+    request<AnalyzeResponse>(`/api/analyze?stem=${encodeURIComponent(stem)}`, { method: "POST" }),
+  analyzeFile: (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<AnalyzeResponse>("/api/analyze", { method: "POST", body });
+  },
+  diagnose: (stem: string) =>
+    request<DiagnosisReport>(`/api/diagnose/${encodeURIComponent(stem)}`),
+  yieldWafer: (stem: string) =>
+    request<YieldPanel>(`/api/yield/wafer/${encodeURIComponent(stem)}`),
   pareto: (split: string, limit: number) =>
     request<ParetoResponse>(`/api/yield/pareto?split=${split}&limit=${limit}`),
   generate: (body: {
@@ -173,7 +200,36 @@ export const api = {
     postJson<ShotGridResponse>("/api/physics/shotgrid", body),
 };
 
-export const waferImageUrl = (stem: string): string => `/api/wafers/${stem}/image`;
+export const waferImageUrl = (stem: string): string =>
+  `/api/wafers/${encodeURIComponent(stem)}/image`;
+
+export const waferCategories = [
+  "center",
+  "donut",
+  "edge_ring",
+  "edge_loc",
+  "scratch",
+  "random",
+  "loc",
+  "near_full",
+  "swirl",
+  "radial_spokes",
+  "shot_grid",
+  "crescent",
+  "half_wafer",
+  "wedge",
+  "comet",
+  "edge_scratch_tiny",
+  "edge_scratch_small",
+  "edge_scratch_medium",
+  "edge_scratch_large",
+  "lift_pin",
+  "bullseye",
+  "gradient",
+  "slip_lines",
+  "double_ring",
+  "combo",
+];
 
 export const useApi = <T>(
   loader: () => Promise<T>,
