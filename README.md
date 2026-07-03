@@ -45,7 +45,7 @@ analytics — defect area, scratch orientation, and per-defect yield-loss attrib
   _and_ produces the polygon label, scaling the dataset to 10k+ images. Includes per-category
   visual QA sheets, a layout builder that always evaluates against the frozen raw test split,
   and two whole-image baselines for comparison: zone-density + Radon + SVM (the classical
-  WM-811K method) and a multi-label ResNet-18. The 10k generation and data-scaling study run
+  WM-811K method). The 10k generation and data-scaling study run
   on GPU next.
 - **Stage 3 — physics simulation suite (planned):** first-principles simulations that _cause_
   defect patterns instead of drawing them — a heat-equation thermal solver whose stress field
@@ -101,7 +101,6 @@ scripts/
     layout.py              generated set -> YOLO layout, test wired to the raw split (CLI)
   baselines/
     classical.py           zone-density + Radon features + SVM baseline (CLI)
-    resnet.py              multi-label ResNet-18 baseline (CLI)
 docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite
 ```

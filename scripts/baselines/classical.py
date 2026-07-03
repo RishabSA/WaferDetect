@@ -1,7 +1,16 @@
+"""
+Classical Method based on:
+Wafer Map Failure Pattern Recognition and Similarity Ranking for Large-Scale Data Sets
+Ming-Ju Wu, Jyh-Shing R. Jang, Member, IEEE, and Jui-Long Chen
+
+https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6932449
+"""
+
 import argparse
 import json
 import os
 from pathlib import Path
+from tqdm import tqdm
 import numpy as np
 from PIL import Image
 from skimage.transform import radon
@@ -9,7 +18,6 @@ from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
-from tqdm import tqdm
 
 from scripts.datagen.fields import category_class
 from scripts.perception.dataset import read_manifests, stem_category
@@ -24,11 +32,17 @@ wafer_frac = 0.97
 
 def dot_coordinates(image: np.ndarray) -> np.ndarray:
     height, width = image.shape
+
+    # Threshold dark pixels
     rows, cols = np.nonzero(image < dark_threshold)
 
+    # Map to wafer coordinates
     u = (cols / (width - 1) * 2 - 1) / wafer_frac
     v = (rows / (height - 1) * 2 - 1) / wafer_frac
+
+    # Drop defect die dots at radius > outline_radius t remvoe the wafer outline circle while keeping all actual die dots
     keep = np.hypot(u, v) <= outline_radius
+
     return np.stack([u[keep], v[keep]], axis=1)
 
 
@@ -38,9 +52,11 @@ def density_features(
     radius = np.clip(np.hypot(dots[:, 0], dots[:, 1]), 0, 0.999)
     theta = np.arctan2(dots[:, 1], dots[:, 0]) % (2 * np.pi)
 
+    # Partition the disk into 4 radial bands with 8 angular sectors
     r_index = (radius * radial_bins).astype(int)
     t_index = (theta / (2 * np.pi) * angular_bins).astype(int)
 
+    # Count the fraction of dots in each zone
     counts = np.zeros((radial_bins, angular_bins))
     np.add.at(counts, (r_index, t_index), 1)
     return (counts / max(len(dots), 1)).ravel()
@@ -48,12 +64,18 @@ def density_features(
 
 def radon_features(dots: np.ndarray, size: int = 64, n_angles: int = 20) -> np.ndarray:
     grid = np.zeros((size, size))
+
+    # Make a 64 x 64 grid with dots
     cols = np.clip(((dots[:, 0] + 1) / 2 * (size - 1)).astype(int), 0, size - 1)
     rows = np.clip(((dots[:, 1] + 1) / 2 * (size - 1)).astype(int), 0, size - 1)
     grid[rows, cols] = 1.0
 
+    # Aapply the Radon transform, and for each of 20 angles, sum the image along parallel rays at that angle, producing one projection profile per angle
+    # A line of dots, viewed along its own direction, collapses into a single enormous spike in that angle's projection, while viewed from any other angle it spreads flat
     angles = np.linspace(0.0, 180.0, n_angles, endpoint=False)
     sinogram = radon(grid, theta=angles)
+
+    # Taking each projection's mean and std compresses the sinogram to 40 numbers
     return np.concatenate([sinogram.mean(axis=0), sinogram.std(axis=0)])
 
 
@@ -70,6 +92,7 @@ def load_split(stems: list[str]) -> tuple[np.ndarray, list[str]]:
         )
         for stem in tqdm(singles, desc="extracting features")
     ]
+
     labels = [category_class(stem_category(stem)) for stem in singles]
 
     return np.stack(features), labels

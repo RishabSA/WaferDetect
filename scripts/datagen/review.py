@@ -39,6 +39,7 @@ def write_review_sheets(generated_dir: Path, per_category: int = 5) -> Path:
                 ys = [y * height for _, y in instance.polygon] + [
                     instance.polygon[0][1] * height
                 ]
+
                 axis.plot(xs, ys, linewidth=1.5)
 
             axis.set_title(path.stem, fontsize=8)

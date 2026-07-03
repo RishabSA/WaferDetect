@@ -31,7 +31,7 @@ engineer actually asks.
 
 ```
 Layer 0  DATA ENGINE      heuristic generator + auto polygon labels (+ physics modes later)
-Layer 1  PERCEPTION       YOLO26-seg instance segmentation (baselines: SVM, ResNet-18)
+Layer 1  PERCEPTION       YOLO26-seg instance segmentation (baselines: SVM)
 Layer 2  REAL VALIDATION  WM-811K zero-shot + few-shot
 Layer 3  ANALYTICS        geometry, kinematics, knowledge base, yield $-economics
 Layer 4  MONITORING       stream simulator -> EWMA/CUSUM -> alarms
@@ -48,10 +48,10 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   training, label ingestion all verified).
 - **Stage 2 (data engine): code COMPLETE, 80/80 tests passing.** Implemented
   `datagen/fields.py`, `datagen/labels.py`, `datagen/generator.py`, `datagen/review.py`,
-  `datagen/layout.py`, `baselines/classical.py`, `baselines/resnet.py`, and tests. Local smoke verified generator/review/layout CLIs. Classical
+  `datagen/layout.py`, `baselines/classical.py`, and tests. Local smoke verified generator/review/layout CLIs. Classical
   baseline was run locally: singles accuracy 0.8194, singles macro-F1 0.7911, combo exact-match
   0 by construction. Remaining Stage 2 work is human/A100 gated: pilot review approval, 10k
-  generation, YOLO scaling study, ResNet training, and exit-gate comparison.
+  generation, YOLO scaling study, and exit-gate comparison.
 - **Stage 3 (physics suite): code COMPLETE, 108/108 tests passing.** Implemented
   `scripts/datagen/physics/{thermal,spincoat,cmp,shotgrid,builders}.py`, generator
   `physics_frac` integration, and tests. Local smoke verified physics-mode generation and
@@ -236,12 +236,6 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 - `dot_coordinates`, `density_features`, `radon_features`, `feature_vector`
 - CLI trains StandardScaler + RBF SVM on raw single-pattern train wafers and writes
   `runs/baselines/classical/metrics.json`; combo exact-match is recorded as 0
-
-`scripts/baselines/resnet.py`:
-
-- `multi_hot(label_path, n_classes) -> torch.Tensor`
-- `WaferDataset(images_dir, labels_dir, n_classes)`
-- `evaluate(model, loader, device)` plus CLI for ResNet-18 multi-label training/evaluation
 
 `scripts/datagen/physics/thermal.py` — Stage 3 thermal stress/slip model:
 
@@ -459,7 +453,7 @@ Other repo items: root-level `experiment.ipynb`,
   `wafer_frac = 0.97` — labels land in [0.015, 0.985] by construction.
 - **Combo stratification pooled** (see §4 `stem_category`) — documented spec deviation.
 - **Stage-1 baselines deferred**: classical zone-density+Radon+SVM (Wu et al. 2015 — the
-  historical WM-811K method; the user independently prototyped these features) and ResNet-18
+  historical WM-811K method; the user independently prototyped these features)
   multi-label ride with Stage 2. **Mask R-CNN was cut** pending user sign-off (cost/value).
 - **Physics simulations are current-scope product features** (Stage 3): thermal→slip-lines,
   spin-coat/CMP radial models, scratch arc kinematics (Radon-based orientation), shot-grid
@@ -622,9 +616,9 @@ unchanged. Physics tests are structural, never absolute-calibrated.
    (`uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`),
    render review sheets, user approves before 10k.
 2. One Colab A100 session: Stage 1 baseline training + eval, then 10k generation, scaling
-   study {500,1k,2k,5k,10k}, ResNet baseline.
+   study {500,1k,2k,5k,10k}.
 3. Exit-gate review: Gate B (500-generated model ≥ Stage 1 baseline mask mAP50), Gate C
-   (scaling curve), Gate D (detector vs. SVM 0.8194-singles/0-combo vs. ResNet table).
+   (scaling curve), Gate D (detector vs. SVM 0.8194-singles/0-combo).
 
 Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, `tqdm`.
 

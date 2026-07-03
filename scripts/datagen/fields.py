@@ -229,7 +229,7 @@ def slip_lines_field(grid: int, rng: np.random.Generator) -> np.ndarray:
     base = rng.uniform(0, np.pi / 2)
     field = np.zeros((grid, grid))
 
-    for _ in range(int(rng.integers(3, 7))):
+    for i in range(int(rng.integers(3, 7))):
         angle = base + int(rng.integers(0, 2)) * np.pi / 2
         anchor_theta = rng.uniform(0, 2 * np.pi)
         anchor = np.array([np.cos(anchor_theta), np.sin(anchor_theta)]) * rng.uniform(

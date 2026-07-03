@@ -63,7 +63,7 @@ def solve_heat(
             -((xx - sx) ** 2 + (yy - sy) ** 2) / (2 * spot_sigma**2)
         )
 
-    for _ in range(steps):
+    for step in range(steps):
         temperature = temperature + alpha * masked_laplacian(temperature, disk)
         temperature = np.where(disk, temperature + ramp_per_step, temperature)
         temperature = np.where(

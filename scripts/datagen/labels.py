@@ -48,6 +48,7 @@ def field_to_polygon(
 def wafer_to_image(
     points: list[tuple[float, float]], wafer_frac: float
 ) -> list[tuple[float, float]]:
+    # Maps wafer coordinates to normalized image coordinates
     return [
         (round(0.5 + x * wafer_frac / 2, 6), round(0.5 + y * wafer_frac / 2, 6))
         for x, y in points

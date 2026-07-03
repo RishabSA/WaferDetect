@@ -73,8 +73,8 @@ def test_generation_is_deterministic() -> None:
 
 def test_choose_categories_shapes() -> None:
     rng = np.random.default_rng(0)
-    singles = [choose_categories(rng, combo_frac=0.0) for _ in range(20)]
-    combos = [choose_categories(rng, combo_frac=1.0) for _ in range(20)]
+    singles = [choose_categories(rng, combo_frac=0.0) for i in range(20)]
+    combos = [choose_categories(rng, combo_frac=1.0) for i in range(20)]
 
     assert all(len(categories) == 1 for categories in singles)
     assert all(2 <= len(categories) <= 4 for categories in combos)

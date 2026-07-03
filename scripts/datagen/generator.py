@@ -40,6 +40,8 @@ background_dot_count = (30, 90)
 def sample_dots(field: np.ndarray, count: int, rng: np.random.Generator) -> np.ndarray:
     grid = field.shape[0]
     flat = field.ravel()
+
+    # Draw cells with probability proportional to intensity (bright field regions get many dots while dim ones get few)
     cells = rng.choice(flat.size, size=count, p=flat / flat.sum())
 
     rows, cols = np.divmod(cells, grid)
@@ -51,13 +53,16 @@ def sample_dots(field: np.ndarray, count: int, rng: np.random.Generator) -> np.n
     radius = np.hypot(dots[:, 0], dots[:, 1])
     outside = radius > 0.99
     dots[outside] = dots[outside] / radius[outside, None] * 0.99
+
     return dots
 
 
 def background_dots(count: int, rng: np.random.Generator) -> np.ndarray:
-    # sqrt makes radial density uniform in area, not clustered at the center
+    # sqrt makes radial density uniform in area, not clustered at the center, producing uniform density per unit of area
     radius = np.sqrt(rng.uniform(0, 1, count)) * 0.98
     theta = rng.uniform(0, 2 * np.pi, count)
+
+    # Noise floor every real wafer has, which are random isolated failures unrelated to the pattern
     return np.stack([radius * np.cos(theta), radius * np.sin(theta)], axis=1)
 
 
@@ -68,14 +73,17 @@ def quantize_dots(dots: np.ndarray, die_grid: int) -> np.ndarray:
 
 
 def render(dots: np.ndarray, rng: np.random.Generator) -> Image.Image:
+    # Make the image canvas
     image = Image.new("L", (image_size, image_size), 255)
     draw = ImageDraw.Draw(image)
 
+    # Drawthe wafer outline circle
     margin = image_size * (1 - wafer_frac) / 2
     draw.ellipse(
         [margin, margin, image_size - margin, image_size - margin], outline=0, width=2
     )
 
+    # Draw Each dot, which is a filled circle of jittered radius 1.2 – 2.4
     for u, v in dots:
         x = (0.5 + u * wafer_frac / 2) * image_size
         y = (0.5 + v * wafer_frac / 2) * image_size
@@ -123,11 +131,14 @@ def generate_sample(
         ):
             builder = physics_field_builders[category]
 
-        for _ in range(max_overlap_retries):
+        # Each pattern in a combo gets re-rolled up to max_overlap_retries times until its footprint overlaps every previously placed pattern by IoU <= combo_iou_limit
+        # Two patterns stacked on top of each other would be unrealistic
+        for i in range(max_overlap_retries):
             field = builder(grid_size, rng)
             mask = field_mask(field)
             if all(mask_iou(mask, other) <= combo_iou_limit for other in masks):
                 break
+
         masks.append(mask)
 
         low, high = pattern_dot_counts.get(category, default_dot_count)
@@ -139,6 +150,7 @@ def generate_sample(
 
     dots.append(background_dots(int(rng.integers(*background_dot_count)), rng))
     all_dots = np.concatenate(dots)
+
     if die_grid:
         all_dots = quantize_dots(all_dots, die_grid)
 
