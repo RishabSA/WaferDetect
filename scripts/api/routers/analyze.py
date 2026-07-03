@@ -88,7 +88,7 @@ async def analyze(
     for entry, (_, _, polygon) in zip(report["detections"], detections, strict=True):
         entry["polygon"] = polygon
 
-    # Subsample for SVG rendering; convert wafer coords to normalized image coords.
+    # Subsample for SVG rendering; convert wafer coordinates to normalized image coordinates
     display = dots[:: max(1, len(dots) // max_display_dots)]
     display_image = (display * wafer_frac + 1) / 2  # shape: (n, 2)
 

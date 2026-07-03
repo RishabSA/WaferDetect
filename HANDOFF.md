@@ -42,14 +42,13 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
 ## 2. Current status (updated 2026-07-02)
 
 - **Stage 1 (foundation & baseline): code COMPLETE, 27/27 tests passing.** The full baseline
-  training run is PENDING — the user runs it on Colab A100 per `colab/stage1_baseline.md`.
+  training run is PENDING — the user runs it on Colab A100.
   A local overfit smoke run reached epoch 22 with box mAP50 ≈ 0.47 and rising before being
   intentionally stopped — the pipeline mechanically works (YOLO26 weights download, MPS
   training, label ingestion all verified).
 - **Stage 2 (data engine): code COMPLETE, 80/80 tests passing.** Implemented
   `datagen/fields.py`, `datagen/labels.py`, `datagen/generator.py`, `datagen/review.py`,
-  `datagen/layout.py`, `baselines/classical.py`, `baselines/resnet.py`, tests, and
-  `colab/stage2_data_engine.md`. Local smoke verified generator/review/layout CLIs. Classical
+  `datagen/layout.py`, `baselines/classical.py`, `baselines/resnet.py`, and tests. Local smoke verified generator/review/layout CLIs. Classical
   baseline was run locally: singles accuracy 0.8194, singles macro-F1 0.7911, combo exact-match
   0 by construction. Remaining Stage 2 work is human/A100 gated: pilot review approval, 10k
   generation, YOLO scaling study, ResNet training, and exit-gate comparison.
@@ -60,8 +59,7 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   generate the 300-sample physics pilot in `data/generated/physics_pilot`, review sheets for
   the six physics-covered classes, and choose the production `--physics-frac`.
 - **Stage 4 (WM-811K validation): code COMPLETE, 127/127 tests passing.** Implemented
-  `scripts/wm811k/{convert,manifests,render,zero_shot,pseudolabel}.py`, fixture-only tests,
-  `colab/stage4_wm811k.md`, and deps `pandas` + `pyarrow`. Code builds and tests without the
+  `scripts/wm811k/{convert,manifests,render,zero_shot,pseudolabel}.py`, fixture-only tests, and deps `pandas` + `pyarrow`. Code builds and tests without the
   dataset or weights. Remaining Stage 4 work is execution-gated: user download of `LSWMD.pkl`
   (~2 GB → `data/wm811k/`) plus trained weights, then conversion/rendering, zero-shot scoring,
   few-shot sweeps, and the die-grid quantization ablation.
@@ -113,7 +111,7 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
 - **Label format (YOLO segmentation):** one line per defect instance:
   `<class_id> x1 y1 x2 y2 ...` — alternating x,y polygon vertices, normalized to [0,1],
   implicitly closed, variable vertex count (4 for scratches, up to 30 for round blobs),
-  6-decimal coords.
+  6-decimal coordinates.
 - **Filenames encode ground truth:** `NNNN_<category>.jpg`. 24 single categories = 20 plain
   classes + `edge_scratch_{tiny,small,medium,large}` (a size/difficulty axis — all four map to
   class 15). 100 `combo_<a>+<b>[+...]` images carry 2–4 co-occurring defects (one label line
@@ -423,7 +421,7 @@ Tests (165): Stage 1/2/3/4 tests plus analytics and API tests. API tests use
 `create_app(None)` and stay weight-free.
 There are deliberately NO tests for CLI/argparse plumbing, training loops, or real WM-811K data.
 
-Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experiment.ipynb`,
+Other repo items: root-level `experiment.ipynb`,
 `wafe_map.py`, `plot_annotated.py` are the user's exploratory scripts — **do not modify,
 "fix", or delete them**; `.superpowers/` is orchestration scratch — ignore it.
 
@@ -457,7 +455,7 @@ Other repo items: `colab/stage1_baseline.md` (A100 recipe); root-level `experime
 - **Generator design (Stage 2): the intensity field is the single source of truth** — the same
   2D field over the unit disk both samples the dots and produces the polygon label
   (threshold 35% of max → contour; convex hull when components are disjoint). Pixels and labels
-  cannot drift apart. Wafer coords [-1,1] map to image coords via `0.5 + u*wafer_frac/2`,
+  cannot drift apart. Wafer coordinates [-1,1] map to image coordinates via `0.5 + u*wafer_frac/2`,
   `wafer_frac = 0.97` — labels land in [0.015, 0.985] by construction.
 - **Combo stratification pooled** (see §4 `stem_category`) — documented spec deviation.
 - **Stage-1 baselines deferred**: classical zone-density+Radon+SVM (Wu et al. 2015 — the
@@ -537,7 +535,7 @@ The user rewrote generated code once to enforce this and does not want to again.
 - Do not modify `data/raw/` contents, the split manifests, the user's root scripts, or
   `.gitignore` (the user's `data/` and `docs/` blanket ignores are their deliberate choice).
 - Do not launch long training runs unprompted — heavy compute (full trainings, sweeps,
-  WM-811K) belongs on the user's Colab A100 (`colab/*.md` docs carry the exact commands);
+  WM-811K) belongs on the user's Colab A100;
   local Mac (MPS) is for development, unit tests, and short smoke runs only.
 - Human gates are real stops: Stage 2's pilot review sheets must be approved by the user
   before the 10k generation; exit-gate reviews happen with the user.
@@ -592,7 +590,7 @@ Code tasks are complete. Remaining execution requires external data and trained 
 
 1. Put the user-downloaded WM-811K pickle at `data/wm811k/LSWMD.pkl`.
 2. Provide trained weights, preferably the Stage 2 production model.
-3. Follow `colab/stage4_wm811k.md`: convert to `labeled.parquet`, build manifests, render
+3. Convert to `labeled.parquet`, build manifests, render
    calibration/eval images, run zero-shot, run few-shot sweeps, and run the die-grid
    quantization ablation.
 4. Exit-gate review: report zero-shot defect macro-F1, none-FPR, confusion matrix,
@@ -623,9 +621,8 @@ unchanged. Physics tests are structural, never absolute-calibrated.
 1. Stage 2 Gate A: generate the heuristic pilot
    (`uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`),
    render review sheets, user approves before 10k.
-2. One Colab A100 session: Stage 1 baseline training + eval (`colab/stage1_baseline.md` —
-   the Gate B measuring stick), then `colab/stage2_data_engine.md` (10k generation, scaling
-   study {500,1k,2k,5k,10k}, ResNet baseline).
+2. One Colab A100 session: Stage 1 baseline training + eval, then 10k generation, scaling
+   study {500,1k,2k,5k,10k}, ResNet baseline.
 3. Exit-gate review: Gate B (500-generated model ≥ Stage 1 baseline mask mAP50), Gate C
    (scaling curve), Gate D (detector vs. SVM 0.8194-singles/0-combo vs. ResNet table).
 

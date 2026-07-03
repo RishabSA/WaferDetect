@@ -1,6 +1,9 @@
 import argparse
 import os
+import pickle
 from pathlib import Path
+import sys
+import types
 import numpy as np
 import pandas as pd
 
@@ -20,13 +23,57 @@ wm811k_class_map = {
 }
 
 
+def install_legacy_pandas_pickle_aliases() -> None:
+    import pandas.core.indexes.base as base
+    import pandas.core.indexes.category as category
+    import pandas.core.indexes.datetimes as datetimes
+    import pandas.core.indexes.multi as multi
+    import pandas.core.indexes.period as period
+    import pandas.core.indexes.range as range_index
+    import pandas.core.indexes.timedeltas as timedeltas
+
+    package = types.ModuleType("pandas.indexes")
+    package.__path__ = []
+    package.Index = pd.Index
+    package.MultiIndex = pd.MultiIndex
+    package.RangeIndex = pd.RangeIndex
+
+    numeric = types.ModuleType("pandas.indexes.numeric")
+    numeric.Int64Index = pd.Index
+    numeric.Float64Index = pd.Index
+    numeric.UInt64Index = pd.Index
+
+    aliases = {
+        "pandas.indexes": package,
+        "pandas.indexes.base": base,
+        "pandas.indexes.category": category,
+        "pandas.indexes.datetimes": datetimes,
+        "pandas.indexes.multi": multi,
+        "pandas.indexes.numeric": numeric,
+        "pandas.indexes.period": period,
+        "pandas.indexes.range": range_index,
+        "pandas.indexes.timedeltas": timedeltas,
+    }
+    for old_name, module in aliases.items():
+        sys.modules.setdefault(old_name, module)
+
+
 def flatten_label(value) -> str | None:
     flat = np.ravel(value)
     return str(flat[0]) if flat.size else None
 
 
+def read_pickle_compat(path: Path):
+    install_legacy_pandas_pickle_aliases()
+    try:
+        return pd.read_pickle(path)
+    except UnicodeDecodeError:
+        with open(path, "rb") as file:
+            return pickle.load(file, encoding="latin1")
+
+
 def convert(pickle_path: Path, parquet_path: Path) -> pd.DataFrame:
-    raw = pd.read_pickle(pickle_path)
+    raw = read_pickle_compat(pickle_path)
 
     labels = raw["failureType"].map(flatten_label)
     keep = labels.isin(wm811k_class_map)

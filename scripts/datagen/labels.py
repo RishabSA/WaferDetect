@@ -20,13 +20,19 @@ def field_to_polygon(
     if components > 1:
         rows, cols = np.nonzero(mask)
         points = np.stack([cols, rows], axis=1).astype(float)
+
+        # Disjoint clusters
         contour_xy = points[ConvexHull(points).vertices]
     else:
         # Padding closes contours for rim-touching fields like gradient and half-wafer.
         padded = np.pad(mask, 1)
         contour = max(find_contours(padded.astype(float), 0.5), key=len)
+
+        # Single blob
         contour_xy = contour[:, ::-1] - 1.0
 
+    # Douglas–Peucker simplification that deletes vertices that deviate from the shape by less than 2.5 pixels
+    # Simplifies the polygon to only the meaningful vertices
     simplified = approximate_polygon(contour_xy, tolerance_frac * grid)
     if np.allclose(simplified[0], simplified[-1]):
         simplified = simplified[:-1]
@@ -35,6 +41,7 @@ def field_to_polygon(
         step = int(np.ceil(len(simplified) / max_vertices))
         simplified = simplified[::step]
 
+    # Convert grid indices back to wafer coordinates in [-1, 1]
     return [(x / (grid - 1) * 2 - 1, y / (grid - 1) * 2 - 1) for x, y in simplified]
 
 
@@ -54,8 +61,8 @@ def image_to_wafer(
 
 
 def yolo_line(class_id: int, polygon: list[tuple[float, float]]) -> str:
-    coords = " ".join(f"{x:.6f} {y:.6f}" for x, y in polygon)
-    return f"{class_id} {coords}"
+    coordinates = " ".join(f"{x:.6f} {y:.6f}" for x, y in polygon)
+    return f"{class_id} {coordinates}"
 
 
 def mask_iou(a: np.ndarray, b: np.ndarray) -> float:

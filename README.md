@@ -8,7 +8,7 @@ and what it cost.
 ## Why wafer maps
 
 After fabrication, every die on a silicon wafer is electrically tested. Plotting the failing
-dies by position produces a *wafer map*, and the spatial pattern of failures is a fingerprint
+dies by position produces a _wafer map_, and the spatial pattern of failures is a fingerprint
 of a specific process problem: a scratch means mechanical handling damage, slip lines mean
 thermal stress during rapid thermal processing, a repeating shot grid points at the
 lithography stepper, rings and center clusters point at deposition or polishing uniformity.
@@ -42,12 +42,12 @@ analytics — defect area, scratch orientation, and per-defect yield-loss attrib
   reports per-class box/mask mAP plus dedicated combo and tiny-scratch subsets.
 - **Stage 2 — data engine (implemented):** a parametric generator in which each defect class
   is a 2D intensity field over the wafer disk; the same field samples the failing-die dots
-  *and* produces the polygon label, scaling the dataset to 10k+ images. Includes per-category
+  _and_ produces the polygon label, scaling the dataset to 10k+ images. Includes per-category
   visual QA sheets, a layout builder that always evaluates against the frozen raw test split,
   and two whole-image baselines for comparison: zone-density + Radon + SVM (the classical
   WM-811K method) and a multi-label ResNet-18. The 10k generation and data-scaling study run
   on GPU next.
-- **Stage 3 — physics simulation suite (planned):** first-principles simulations that *cause*
+- **Stage 3 — physics simulation suite (planned):** first-principles simulations that _cause_
   defect patterns instead of drawing them — a heat-equation thermal solver whose stress field
   places slip lines, Emslie–Bonner–Peck spin-coating and Preston CMP uniformity models for
   rings/gradients, and a stepper shot-grid model with the repeating reticle-defect signature —
@@ -79,8 +79,7 @@ uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --coun
 uv run pytest
 ```
 
-Full training runs are intended for GPU (see `colab/stage1_baseline.md` for the Colab A100
-recipe); outputs land in `runs/train/<name>/` and `runs/eval/<name>/`.
+Full training runs are intended for GPU; outputs land in `runs/train/<name>/` and `runs/eval/<name>/`.
 
 ## Project structure
 
@@ -103,7 +102,6 @@ scripts/
   baselines/
     classical.py           zone-density + Radon features + SVM baseline (CLI)
     resnet.py              multi-label ResNet-18 baseline (CLI)
-colab/                     GPU run recipes
 docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite
 ```

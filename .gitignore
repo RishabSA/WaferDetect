@@ -2,8 +2,6 @@ data/
 docs/
 runs/
 waferdetect_runs/
-data/yolo/
-data/yolo_smoke/
 .superpowers/
 
 *.pkl

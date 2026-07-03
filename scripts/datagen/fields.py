@@ -5,27 +5,44 @@ from scipy.ndimage import gaussian_filter
 
 def disk_coordinates(grid: int) -> tuple:
     axis = np.linspace(-1.0, 1.0, grid)
+
+    # x, y coordinates of each grid cell
     xx, yy = np.meshgrid(axis, axis)
+
+    # each cells distance from the center (radiuses)
     rr = np.hypot(xx, yy)
 
-    return xx, yy, rr, rr <= 1.0
+    # Boolean mask indicating if each cell on the wafer
+    disk_mask = rr <= 1.0
+
+    return xx, yy, rr, disk_mask
+
+
+# 21 defect classes reduce to compositions of four shapes:
 
 
 def gaussian_blob(grid: int, cx: float, cy: float, sigma: float) -> np.ndarray:
+    # Gaussian blob is used for soft spots and localized clusters, such as center, loc, edge_loc, and lift-pin marks
     xx, yy, _, disk = disk_coordinates(grid)
+
+    # exp(-d^2 / 2 * \sigma^2) - intensity falls off smoothly with distance from a point
     return np.exp(-((xx - cx) ** 2 + (yy - cy) ** 2) / (2 * sigma**2)) * disk
 
 
 def annulus(grid: int, radius: float, width: float) -> np.ndarray:
+    # Annulus is used for soft rings, such as donut, edge_ring, double_ring, and bullseye's outer ring
     _, _, rr, disk = disk_coordinates(grid)
+
+    # exp(-(r - R)^2 / 2 * \sigma^2) - Gaussian falloff applied to rr − radius - intense where the distance from center is near the target radius
     return np.exp(-((rr - radius) ** 2) / (2 * width**2)) * disk
 
 
 def angular_mask(grid: int, theta0: float, width: float) -> np.ndarray:
+    # Angular mask is used for soft slices, such as wedge, crescent, and radial_spokes
     xx, yy, _, _ = disk_coordinates(grid)
     theta = np.arctan2(yy, xx)
 
-    # Wrapped angular difference keeps the window continuous across +/- pi.
+    # Wrapped angular difference keeps the window continuous across +/- pi
     delta = np.angle(np.exp(1j * (theta - theta0)))
     return np.exp(-(delta**2) / (2 * width**2))
 
@@ -33,6 +50,7 @@ def angular_mask(grid: int, theta0: float, width: float) -> np.ndarray:
 def curve_band(
     grid: int, points: np.ndarray, sigma: float, weights: np.ndarray | None = None
 ) -> np.ndarray:
+    # Curve band is used for ssoft ribbons along curves, such as line, arc, and spiral
     field = np.zeros((grid, grid))
     cols = np.clip(
         ((points[:, 0] + 1) / 2 * (grid - 1)).round().astype(int), 0, grid - 1
@@ -43,6 +61,7 @@ def curve_band(
     field[rows, cols] = 1.0 if weights is None else weights
 
     field = gaussian_filter(field, sigma * grid / 2)
+
     _, _, _, disk = disk_coordinates(grid)
     return field * disk
 

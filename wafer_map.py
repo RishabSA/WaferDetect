@@ -48,7 +48,7 @@ if __name__ == "__main__":
     grid_resolution = 64
     wafer_map = np.zeros((grid_resolution, grid_resolution), dtype=int)
 
-    # Map each centroid's pixel coords to its grid cell (clip guards the wafer edge)
+    # Map each centroid's pixel coordinates to its grid cell (clip guards the wafer edge)
     grid_cols = np.clip(
         (dot_xs / width * grid_resolution).astype(int), 0, grid_resolution - 1
     )

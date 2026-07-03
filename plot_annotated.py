@@ -17,9 +17,9 @@ if __name__ == "__main__":
     # each line is one annotated object: "<class_id> x1 y1 x2 y2 ... xn yn" with x/y normalized to [0, 1]
     for line in lines:
         values = line.split()
-        coords = [float(v) for v in values[1:]]
-        xs = [coords[i] * width for i in range(0, len(coords), 2)]
-        ys = [coords[i] * height for i in range(1, len(coords), 2)]
+        coordinates = [float(v) for v in values[1:]]
+        xs = [coordinates[i] * width for i in range(0, len(coordinates), 2)]
+        ys = [coordinates[i] * height for i in range(1, len(coordinates), 2)]
         # give every vertex its own color via the colormap so the dots are visibly different
         colors = list(range(len(xs)))
         plt.scatter(

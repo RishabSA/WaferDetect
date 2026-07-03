@@ -1,9 +1,18 @@
 from pathlib import Path
+import importlib
+import sys
 
 import numpy as np
 import pandas as pd
 
-from scripts.wm811k.convert import convert, flatten_label, load_map, wm811k_class_map
+from scripts.wm811k.convert import (
+    convert,
+    flatten_label,
+    install_legacy_pandas_pickle_aliases,
+    load_map,
+    read_pickle_compat,
+    wm811k_class_map,
+)
 
 
 def make_fake_pickle(tmp_path: Path) -> Path:
@@ -41,6 +50,26 @@ def test_class_map_is_complete() -> None:
         "none",
     }
     assert wm811k_class_map["Edge-Ring"] == "edge_ring"
+
+
+def test_legacy_pandas_pickle_aliases() -> None:
+    for name in tuple(sys.modules):
+        if name.startswith("pandas.indexes"):
+            sys.modules.pop(name)
+
+    install_legacy_pandas_pickle_aliases()
+    legacy = importlib.import_module("pandas.indexes")
+    numeric = importlib.import_module("pandas.indexes.numeric")
+
+    assert legacy.Index is pd.Index
+    assert numeric.Int64Index is pd.Index
+
+
+def test_read_pickle_compat_handles_python2_string_encoding(tmp_path: Path) -> None:
+    path = tmp_path / "py2.pkl"
+    path.write_bytes(b"S'\\x9a'\np0\n.")
+
+    assert read_pickle_compat(path) == "\x9a"
 
 
 def test_convert_filters_and_round_trips(tmp_path: Path) -> None:
