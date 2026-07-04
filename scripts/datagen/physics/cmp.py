@@ -1,4 +1,4 @@
-# Simplifications, deliberate: Preston removal with parametric pressure profiles and a linear relative-velocity mismatch; removal deviation stands in for over/under-polish
+# Simplifications: Preston removal with parametric pressure profiles and a linear relative-velocity mismatch; removal deviation stands in for over/under-polish
 import numpy as np
 
 from scripts.datagen.fields import disk_coordinates
@@ -12,6 +12,7 @@ def removal_profile(
     velocity_mismatch: float,
     rng: np.random.Generator,
 ) -> np.ndarray:
+    # Chemical-mechanical planarization polishes the wafer against a rotating pad and material comes off proportionally to local pressure times local relative velocity
     _, _, rr, disk = disk_coordinates(grid)
 
     if mode == "center":
@@ -39,5 +40,7 @@ def cmp_field(grid: int, rng: np.random.Generator, mode: str) -> np.ndarray:
     removal = removal_profile(grid, mode, amplitude, rng.uniform(0.0, 0.2), rng)
 
     _, _, _, disk = disk_coordinates(grid)
+
+    # Subtract the disk-mean (over-polish and under-polish are both bad as deviation from target is what kills dies)
     deviation = np.where(disk, removal - removal[disk].mean(), 0.0)
     return deviation_to_probability(deviation, amplitude) * disk

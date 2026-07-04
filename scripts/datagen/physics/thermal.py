@@ -1,4 +1,4 @@
-# Simplifications, deliberate: plane-stress biaxial thermoelasticity from the wafer-mean temperature; constant thermal diffusivity; an effective Schmid factor instead of full tensor projection; CRSS constants are order-of-magnitude, not metrology
+# Simplifications: plane-stress biaxial thermoelasticity from the wafer-mean temperature; constant thermal diffusivity; an effective Schmid factor instead of full tensor projection; CRSS constants are order-of-magnitude, not metrology
 import numpy as np
 from scipy.ndimage import zoom
 
@@ -21,7 +21,8 @@ pin_sigma = 0.05
 def masked_laplacian(temperature: np.ndarray, disk: np.ndarray) -> np.ndarray:
     laplacian = np.zeros_like(temperature)
 
-    # Each in-disk neighbor pair contributes equal-and-opposite heat exchange.
+    # Transfer difference worth of heat from the hotter to the colder (added to one, subtracted from the other)
+    # Each in-disk neighbor pair contributes equal-and-opposite heat exchange for exact energy conservation (every exchange is equal-and-opposite, so total heat never changes unless a source/sink adds it) and insulated boundaries (pairs straddling the disk edge simply don't exchange)
     vertical = disk[1:, :] & disk[:-1, :]
     difference = temperature[1:, :] - temperature[:-1, :]
     laplacian[:-1, :] += np.where(vertical, difference, 0.0)
@@ -63,6 +64,11 @@ def solve_heat(
             -((xx - sx) ** 2 + (yy - sy) ** 2) / (2 * spot_sigma**2)
         )
 
+    # During rapid thermal processing, a wafer is blasted from room temperature toward over 1000 K in seconds
+    # Temperature obeys the diffusion equation \frac{\partial T}{\partial t} = \alpha \nabla^2 T (∂T/∂t = α∇²T) and sources
+    # Where t = time, T = temperature, \alpha (α) = thermal diffusivity of the material (m^2/s), \nabla^2 (∇²) = Laplacian operator
+
+    # Heat spreads from hot to cold at a rate proportional to the laplacian (measure of how much colder than my neighbors am I)
     for step in range(steps):
         temperature = temperature + alpha * masked_laplacian(temperature, disk)
         temperature = np.where(disk, temperature + ramp_per_step, temperature)
@@ -77,9 +83,12 @@ def solve_heat(
 
 
 def thermal_stress(temperature: np.ndarray, disk: np.ndarray) -> np.ndarray:
+    # Hot silicon wants to expand, but the wafer is one continuous crystal and a locally cold region can't shrink independently, because the hot material around it holds it stretched, causing mechanical stress
+    # Stress is proportional to how much colder a spot is than the wafer average (colder-than-mean regions are in tension and being stretched by their expanded surroundings)
     mean_temperature = temperature[disk].mean()
-    stress = youngs_modulus * expansion_coeff * (mean_temperature - temperature)
-    stress = stress / (1 - poisson_ratio)
+    stress = (youngs_modulus * expansion_coeff * (mean_temperature - temperature)) / (
+        1 - poisson_ratio
+    )
 
     return np.where(disk, stress, 0.0)
 
@@ -87,7 +96,8 @@ def thermal_stress(temperature: np.ndarray, disk: np.ndarray) -> np.ndarray:
 def slip_probability(
     temperature: np.ndarray, disk: np.ndarray, sharpness: float = 2.0
 ) -> np.ndarray:
-    # Cold regions are tensile in this approximation; compressive hot regions do not seed slip.
+    # Crystals don't fail by stretching uniformly, but by slip, where whole atomic planes shearing past each other along specific crystallographic planes
+    # Cold regions are tensile in this approximation; compressive hot regions do not seed slip
     shear = schmid_factor * np.clip(thermal_stress(temperature, disk), 0.0, None)
     critical = crss_prefactor * np.exp(crss_activation / np.maximum(temperature, 1.0))
 

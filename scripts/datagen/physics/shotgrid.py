@@ -1,4 +1,4 @@
-# Simplifications, deliberate: square exposure fields; failure is binary per shot or per repeated within-field spot
+# Simplifications: square exposure fields; failure is binary per shot or per repeated within-field spot
 import numpy as np
 
 from scripts.datagen.fields import disk_coordinates

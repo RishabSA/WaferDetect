@@ -24,15 +24,14 @@ the _spatial pattern_ of failures fingerprints the process problem (scratch → 
 slip lines → RTP thermal stress, shot grid → litho stepper, rings → uniformity, lift_pin →
 chuck pins…). The system detects and segments those patterns with a YOLO26 segmentation model
 trained on synthetic data, and will grow into: physics simulations of the defect-forming
-mechanisms, validation on real fab data (WM-811K), a root-cause + yield-economics analytics
-engine, SPC excursion monitoring, and a FastAPI + React dashboard. Framing is
+mechanisms, a root-cause + yield-economics analytics engine, SPC excursion monitoring, and a
+FastAPI + React dashboard. Framing is
 **product-for-fabs first, research second** — every component answers a question a yield
 engineer actually asks.
 
 ```
 Layer 0  DATA ENGINE      heuristic generator + auto polygon labels (+ physics modes later)
 Layer 1  PERCEPTION       YOLO26-seg instance segmentation (baselines: SVM)
-Layer 2  REAL VALIDATION  WM-811K zero-shot + few-shot
 Layer 3  ANALYTICS        geometry, kinematics, knowledge base, yield $-economics
 Layer 4  MONITORING       stream simulator -> EWMA/CUSUM -> alarms
 Layer 5  DASHBOARD        FastAPI + React/Vite/Tailwind (6 views incl. interactive Physics Lab)
@@ -58,11 +57,6 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   review-sheet rendering in `/private/tmp`. Remaining Stage 3 work is the human visual gate:
   generate the 300-sample physics pilot in `data/generated/physics_pilot`, review sheets for
   the six physics-covered classes, and choose the production `--physics-frac`.
-- **Stage 4 (WM-811K validation): code COMPLETE, 127/127 tests passing.** Implemented
-  `scripts/wm811k/{convert,manifests,render,zero_shot,pseudolabel}.py`, fixture-only tests, and deps `pandas` + `pyarrow`. Code builds and tests without the
-  dataset or weights. Remaining Stage 4 work is execution-gated: user download of `LSWMD.pkl`
-  (~2 GB → `data/wm811k/`) plus trained weights, then conversion/rendering, zero-shot scoring,
-  few-shot sweeps, and the die-grid quantization ablation.
 - **Stage 5 (analytics engine): code COMPLETE, 149/149 tests passing.** Implemented
   `scripts/analytics/{diegrid,yieldmodels,economics,kinematics,fieldanalysis,diagnosis}.py`,
   `knowledge_base.yaml`, `image_to_wafer`, and tests. Generated sample ground-truth reports:
@@ -122,9 +116,7 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   every stage (including generated-data models) is evaluated against it.
 - `data/yolo/` — derived YOLO layout (copies + `data.yaml`), gitignored, rebuild with
   `uv run python -m scripts.perception.dataset --force`.
-- The dataset is synthetic (rendered, perfectly balanced). WM-811K (Stage 4) is the real-fab
-  counterpart: 811k die-grid maps, ~173k labeled, 8 classes (all a subset of ours),
-  image-level labels only — no polygons (drives the pseudo-label design in the spec §6).
+- The dataset is synthetic (rendered, perfectly balanced).
 
 ## 4. Codebase map and exact interfaces (post-cleanup — trust THIS, not the Stage 1 plan)
 
@@ -275,42 +267,6 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 - `generate_sample(..., physics_frac: float = 0.0)` and CLI `--physics-frac`; default `0.0`
   preserves Stage 2 behavior.
 
-`scripts/wm811k/convert.py` — Stage 4 WM-811K converter:
-
-- `wm811k_class_map` — exact closed mapping: Center, Donut, Edge-Ring, Edge-Loc, Scratch,
-  Random, Loc, Near-full, none
-- `flatten_label(value) -> str | None`
-- `convert(pickle_path: Path, parquet_path: Path) -> pd.DataFrame`
-- `load_map(row) -> np.ndarray`
-
-`scripts/wm811k/manifests.py`:
-
-- `build_manifests(frame, seed, eval_cap=2000, calibration_per_class=50,
-fewshot_reserve=600, none_calibration=200, none_eval=2000) -> dict[str, list[int]]`
-- `write_manifests(manifests, frame, out_dir) -> None`
-- `read_manifest(path: Path) -> list[int]`
-
-`scripts/wm811k/render.py`:
-
-- `die_dots(wafer_map: np.ndarray) -> np.ndarray`
-- `render_manifest(frame, indices, out_dir, seed) -> None`; uses the Stage 2 renderer verbatim
-  and stems `{index:06d}_{failure_type}.jpg`
-
-`scripts/wm811k/zero_shot.py`:
-
-- `defect_classes` — the 8 mapped defect classes, excluding `none`
-- `reduce_detections(class_ids, confidences, class_names, threshold) -> str`
-- `predict_directory(model, images_dir, batch_size=64) -> dict`
-- `choose_threshold(predictions, truths, class_names) -> tuple[float, float]`
-- `score(predictions, truths, class_names, threshold) -> dict`
-- `truths_from_directory(images_dir) -> dict`
-
-`scripts/wm811k/pseudolabel.py`:
-
-- `pseudo_polygon(wafer_map, class_name) -> list[tuple[float, float]]`
-- `pseudo_label_line(wafer_map, class_name, class_names) -> str`
-- CLI builds complete few-shot YOLO layouts under `data/wm811k/fewshot_<budget>_<seed>/`
-
 `scripts/analytics/diegrid.py` — Stage 5 virtual die grid:
 
 - module globals: `wafer_radius_mm = 150.0`, `edge_exclusion_mm = 3.0`,
@@ -411,9 +367,9 @@ fewshot_reserve=600, none_calibration=200, none_eval=2000) -> dict[str, list[int
 - `POST /api/physics/cmp`
 - `POST /api/physics/shotgrid`
 
-Tests (165): Stage 1/2/3/4 tests plus analytics and API tests. API tests use
+Tests (165): Stage 1/2/3 tests plus analytics and API tests. API tests use
 `create_app(None)` and stay weight-free.
-There are deliberately NO tests for CLI/argparse plumbing, training loops, or real WM-811K data.
+There are deliberately NO tests for CLI/argparse plumbing, training loops, or trained model weights.
 
 Other repo items: root-level `experiment.ipynb`,
 `wafe_map.py`, `plot_annotated.py` are the user's exploratory scripts — **do not modify,
@@ -453,14 +409,12 @@ Other repo items: root-level `experiment.ipynb`,
   `wafer_frac = 0.97` — labels land in [0.015, 0.985] by construction.
 - **Combo stratification pooled** (see §4 `stem_category`) — documented spec deviation.
 - **Stage-1 baselines deferred**: classical zone-density+Radon+SVM (Wu et al. 2015 — the
-  historical WM-811K method; the user independently prototyped these features)
+  historical wafer-map method; the user independently prototyped these features)
   multi-label ride with Stage 2. **Mask R-CNN was cut** pending user sign-off (cost/value).
 - **Physics simulations are current-scope product features** (Stage 3): thermal→slip-lines,
   spin-coat/CMP radial models, scratch arc kinematics (Radon-based orientation), shot-grid
   analysis — all interactive on the dashboard later. Group B spatial statistics = future F1;
   Group D virtual fab = far-future F2; A5 (FEM/CFD) and D4 (discrete-event fab) permanently cut.
-- **WM-811K evaluation is image-level only** (no real polygons exist); fine-tuning uses
-  DBSCAN-derived pseudo-polygons but reported metrics never trust them.
 
 ## 6. Coding style — MANDATORY, first pass, no exceptions
 
@@ -528,8 +482,8 @@ The user rewrote generated code once to enforce this and does not want to again.
   all version control personally. Read-only git (status/log/diff) is fine.
 - Do not modify `data/raw/` contents, the split manifests, the user's root scripts, or
   `.gitignore` (the user's `data/` and `docs/` blanket ignores are their deliberate choice).
-- Do not launch long training runs unprompted — heavy compute (full trainings, sweeps,
-  WM-811K) belongs on the user's Colab A100;
+- Do not launch long training runs unprompted — heavy compute (full trainings, sweeps)
+  belongs on the user's Colab A100;
   local Mac (MPS) is for development, unit tests, and short smoke runs only.
 - Human gates are real stops: Stage 2's pilot review sheets must be approved by the user
   before the 10k generation; exit-gate reviews happen with the user.
@@ -577,21 +531,6 @@ Code tasks are complete. Remaining execution is user review/tuning:
    action text.
 
 No new dependencies were added for Stage 5.
-
-### Stage 4 execution gate
-
-Code tasks are complete. Remaining execution requires external data and trained weights:
-
-1. Put the user-downloaded WM-811K pickle at `data/wm811k/LSWMD.pkl`.
-2. Provide trained weights, preferably the Stage 2 production model.
-3. Convert to `labeled.parquet`, build manifests, render
-   calibration/eval images, run zero-shot, run few-shot sweeps, and run the die-grid
-   quantization ablation.
-4. Exit-gate review: report zero-shot defect macro-F1, none-FPR, confusion matrix,
-   few-shot budget curves with 3-seed error bars, and the quantization ablation delta.
-
-Hard rules: image-level metrics only; pseudo-polygons exist only for fine-tuning layouts and are
-never used as reported ground truth. Tests run on tiny fixtures, never the real 2 GB pickle.
 
 ### Stage 3 visual gate
 

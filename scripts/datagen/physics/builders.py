@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from functools import partial
 import numpy as np
 
@@ -18,7 +17,7 @@ def dual_mechanism(
     return cmp_field(grid, rng, mode=cmp_mode)
 
 
-physics_field_builders: dict[str, Callable[[int, np.random.Generator], np.ndarray]] = {
+physics_field_builders = {
     "slip_lines": slip_lines_field,
     "center": partial(dual_mechanism, spincoat_mode="center", cmp_mode="center"),
     "donut": partial(dual_mechanism, spincoat_mode="annular", cmp_mode="donut"),

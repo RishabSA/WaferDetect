@@ -14,8 +14,7 @@ thermal stress during rapid thermal processing, a repeating shot grid points at 
 lithography stepper, rings and center clusters point at deposition or polishing uniformity.
 Yield engineers read these patterns to decide which tool to go fix. WaferDetect automates that
 reading — and because real fab data is proprietary and pixel-level annotations barely exist,
-it does so with models trained on synthetic wafer maps, validated against the real-world
-WM-811K benchmark.
+it does so with models trained on synthetic wafer maps.
 
 Instance segmentation (rather than whole-image classification) is the core design choice:
 real wafers carry co-occurring defects, and a classifier can only ever name one. The detector
@@ -45,15 +44,15 @@ analytics — defect area, scratch orientation, and per-defect yield-loss attrib
   _and_ produces the polygon label, scaling the dataset to 10k+ images. Includes per-category
   visual QA sheets, a layout builder that always evaluates against the frozen raw test split,
   and two whole-image baselines for comparison: zone-density + Radon + SVM (the classical
-  WM-811K method). The 10k generation and data-scaling study run
+  wafer-map method). The 10k generation and data-scaling study run
   on GPU next.
 - **Stage 3 — physics simulation suite (planned):** first-principles simulations that _cause_
   defect patterns instead of drawing them — a heat-equation thermal solver whose stress field
   places slip lines, Emslie–Bonner–Peck spin-coating and Preston CMP uniformity models for
   rings/gradients, and a stepper shot-grid model with the repeating reticle-defect signature —
   plugged into the generator as physics-informed generation modes.
-- **Later stages:** validation on WM-811K real fab data, a yield-economics and root-cause
-  analytics engine, SPC excursion monitoring, and a FastAPI + React dashboard.
+- **Later stages:** a yield-economics and root-cause analytics engine, SPC excursion
+  monitoring, and a FastAPI + React dashboard.
   See `docs/superpowers/specs/` for the full design.
 
 ## Setup and usage
