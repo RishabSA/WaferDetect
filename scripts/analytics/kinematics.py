@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.transform import radon
 
-raster_size = 128
+raster_size = 256
 n_angles = 180
 straightness_tolerance = 0.05
 concentric_center_tolerance = 0.3

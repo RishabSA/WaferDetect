@@ -9,13 +9,13 @@ import {
 } from "react-icons/fa";
 import { NavLink, Route, Routes } from "react-router";
 
-import Analyze from "./views/Analyze";
+import Detect from "./views/Detect";
 import PhysicsLab from "./views/PhysicsLab";
 import WaferExplorer from "./views/WaferExplorer";
 import YieldAnalytics from "./views/YieldAnalytics";
 
 const views = [
-	{ path: "/", label: "Analyze", icon: FaCrosshairs },
+	{ path: "/", label: "Detect", icon: FaCrosshairs },
 	{ path: "/explorer", label: "Wafer Explorer", icon: FaThLarge },
 	{ path: "/yield", label: "Yield Analytics", icon: FaChartBar },
 	{ path: "/physics", label: "Physics Lab", icon: FaFlask },
@@ -95,7 +95,7 @@ const App = () => {
 
 			<main className="flex-1 overflow-y-auto p-4 md:p-8">
 				<Routes>
-					<Route path="/" element={<Analyze />} />
+					<Route path="/" element={<Detect />} />
 					<Route path="/explorer" element={<WaferExplorer />} />
 					<Route path="/yield" element={<YieldAnalytics />} />
 					<Route path="/physics" element={<PhysicsLab />} />

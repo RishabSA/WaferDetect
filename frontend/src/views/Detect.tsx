@@ -43,6 +43,7 @@ const typicalWaferValueMax = 500000;
 const viewTabs = [
 	{ key: "detections", label: "Detections" },
 	{ key: "dots", label: "Defect dots" },
+	{ key: "sinogram", label: "Radon sinogram" },
 ] as const;
 type ViewKey = (typeof viewTabs)[number]["key"];
 
@@ -56,7 +57,7 @@ const chartTooltipStyle = {
 const summaryTitle =
 	"cursor-pointer text-sm font-semibold text-white select-none marker:text-cyan-400";
 
-const Analyze = () => {
+const Detect = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const stem = searchParams.get("stem") ?? demoStem;
 	const [file, setFile] = useState<File | null>(null);
@@ -160,7 +161,7 @@ const Analyze = () => {
 	return (
 		<div className="flex animate-fade-up flex-col gap-5">
 			<div className="flex flex-wrap items-center gap-3">
-				<h2 className={heading}>Wafer Intelligence</h2>
+				<h2 className={heading}>Detect</h2>
 				<span className={chip}>{file ? file.name : stem}</span>
 				{analysis.loading && (
 					<span className="text-sm text-cyan-300 animate-pulse">
@@ -177,7 +178,7 @@ const Analyze = () => {
 				</p>
 			)}
 
-			<div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_minmax(0,5fr)]">
+			<div className="grid gap-5 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
 				<div className="flex flex-col gap-3">
 					<div className="flex items-center gap-1.5">
 						{viewTabs.map(tab => (
@@ -221,7 +222,30 @@ const Analyze = () => {
 							event.preventDefault();
 							onUpload(event.dataTransfer.files?.[0]);
 						}}>
-						{data ? (
+						{view === "sinogram" ? (
+							<div className={card}>
+								<div className="flex items-center justify-between">
+									<h3 className="text-sm font-semibold text-white">
+										Radon sinogram
+									</h3>
+									<button
+										onClick={() => setShowSinogramInfo(true)}
+										aria-label="About the Radon sinogram"
+										className="cursor-pointer rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/5 hover:text-cyan-300">
+										<FaInfoCircle size={14} />
+									</button>
+								</div>
+								{data ? (
+									<img
+										src={png(data.sinogram)}
+										alt="radon sinogram"
+										className="mt-2 w-full rounded-lg"
+									/>
+								) : (
+									<div className="mt-2 aspect-3/2 w-full animate-pulse rounded-lg bg-neutral-900" />
+								)}
+							</div>
+						) : data ? (
 							<WaferCanvas
 								imageUrl={png(data.image)}
 								overlays={view === "detections" ? overlays : []}
@@ -240,27 +264,55 @@ const Analyze = () => {
 					<p className={subtle}>
 						Drop an image onto the wafer to analyze it, or pick one below.
 					</p>
-				</div>
 
-				<div className={`${card} h-fit`}>
-					<div className="flex items-center justify-between">
-						<h3 className="text-sm font-semibold text-white">Radon sinogram</h3>
-						<button
-							onClick={() => setShowSinogramInfo(true)}
-							aria-label="About the Radon sinogram"
-							className="cursor-pointer rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/5 hover:text-cyan-300">
-							<FaInfoCircle size={14} />
-						</button>
+					<div className={card}>
+						<div className="flex flex-wrap items-center gap-3">
+							<h3 className="text-sm font-semibold text-white">Browse wafers</h3>
+							<select
+								value={category}
+								onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+									setCategory(event.target.value)
+								}
+								className={select}>
+								<option value="">all categories</option>
+								{waferCategories.map(value => (
+									<option key={value} value={value}>
+										{value}
+									</option>
+								))}
+							</select>
+							{gallery.error && (
+								<span className={errorText}>{gallery.error}</span>
+							)}
+							<Link
+								to="/explorer"
+								className="ml-auto cursor-pointer text-sm text-cyan-300 transition-colors hover:text-cyan-200">
+								Open full explorer →
+							</Link>
+						</div>
+						<div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+							{gallery.data?.items.map(item => (
+								<button
+									key={item.stem}
+									onClick={() => selectWafer(item.stem)}
+									className={`w-24 shrink-0 cursor-pointer rounded-xl p-1.5 transition-all hover:bg-white/10 ${
+										!file && item.stem === stem
+											? "bg-cyan-400/10 ring-1 ring-cyan-400/50"
+											: ""
+									}`}>
+									<img
+										src={waferImageUrl(item.stem)}
+										alt={item.stem}
+										loading="lazy"
+										className="aspect-square w-full rounded-full border border-white/10"
+									/>
+									<p className="mt-1 truncate text-center text-xs text-neutral-300">
+										{item.category}
+									</p>
+								</button>
+							))}
+						</div>
 					</div>
-					{data ? (
-						<img
-							src={png(data.sinogram)}
-							alt="radon sinogram"
-							className="mt-2 w-full rounded-lg"
-						/>
-					) : (
-						<div className="mt-2 aspect-3/2 w-full animate-pulse rounded-lg bg-neutral-900" />
-					)}
 				</div>
 
 				<div className="flex flex-col gap-4">
@@ -508,53 +560,6 @@ const Analyze = () => {
 				</div>
 			</div>
 
-			<section className={card}>
-				<div className="flex flex-wrap items-center gap-3">
-					<h3 className="text-sm font-semibold text-white">Browse wafers</h3>
-					<select
-						value={category}
-						onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-							setCategory(event.target.value)
-						}
-						className={select}>
-						<option value="">all categories</option>
-						{waferCategories.map(value => (
-							<option key={value} value={value}>
-								{value}
-							</option>
-						))}
-					</select>
-					{gallery.error && <span className={errorText}>{gallery.error}</span>}
-					<Link
-						to="/explorer"
-						className="ml-auto cursor-pointer text-sm text-cyan-300 transition-colors hover:text-cyan-200">
-						Open full explorer →
-					</Link>
-				</div>
-				<div className="mt-3 flex gap-3 overflow-x-auto pb-1">
-					{gallery.data?.items.map(item => (
-						<button
-							key={item.stem}
-							onClick={() => selectWafer(item.stem)}
-							className={`w-24 shrink-0 cursor-pointer rounded-xl p-1.5 transition-all hover:bg-white/10 ${
-								!file && item.stem === stem
-									? "bg-cyan-400/10 ring-1 ring-cyan-400/50"
-									: ""
-							}`}>
-							<img
-								src={waferImageUrl(item.stem)}
-								alt={item.stem}
-								loading="lazy"
-								className="aspect-square w-full rounded-full border border-white/10"
-							/>
-							<p className="mt-1 truncate text-center text-xs text-neutral-300">
-								{item.category}
-							</p>
-						</button>
-					))}
-				</div>
-			</section>
-
 			{showSinogramInfo && (
 				<InfoModal
 					title="Radon sinogram"
@@ -581,4 +586,4 @@ const Analyze = () => {
 	);
 };
 
-export default Analyze;
+export default Detect;

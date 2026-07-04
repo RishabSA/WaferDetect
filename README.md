@@ -55,7 +55,7 @@ and a Radon sinogram of the defect dots — everything the dashboard shows.
 - **Analytics** — virtual die grid, Poisson and negative-binomial (Stapper) yield models,
   excess-over-background dollar attribution per defect, scratch kinematics (line vs. arc,
   entry bearing), and a 21-class root-cause knowledge base.
-- **Dashboard** — FastAPI backend + React 19/TypeScript/Tailwind frontend: an Analyze home
+- **Dashboard** — FastAPI backend + React 19/TypeScript/Tailwind frontend: a Detect home
   view (upload or browse, detection overlays, defect-dot and sinogram views, inline
   diagnosis report), Wafer Explorer, Yield Analytics with a fleet-wide Pareto of loss by
   process step, and the interactive Physics Lab.

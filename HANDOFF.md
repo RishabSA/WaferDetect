@@ -83,11 +83,13 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   uninstalled; `npm run build` = tsc is the only frontend gate). Python suite: 141/141.
   React 19 + TypeScript + Vite + Tailwind v4 in
   `frontend/`, redesigned dark-native ("fab control room": cyan/violet on near-black, glassy
-  cards, scan-line loading animation, count-up hero numbers). The home view is now **Analyze**
-  (`views/Analyze.tsx`): boots on demo wafer `0487_combo_random+edge_loc+comet`
+  cards, scan-line loading animation, count-up hero numbers). The home view is now **Detect**
+  (`views/Detect.tsx`, renamed from Analyze 2026-07-04; the wafer-browser strip lives in the
+  left column under the canvas): boots on demo wafer `0487_combo_random+edge_loc+comet`
   (changed from `0101_scratch` 2026-07-04), auto-fetches on wafer pick or
-  image upload (no button), two canvas tabs (detections / defect dots) + always-visible
-  Radon sinogram side panel,
+  image upload (no button), three canvas tabs (detections / defect dots / Radon sinogram —
+  the sinogram moved panel→tab→panel→tab across 2026-07-04 iterations; tab is current),
+  two-column layout (canvas+browser ~55% / report ~45%),
   headline loss+yield front and center, inline expandable report — the separate Detection
   Viewer and Reports views were deleted. Backed by new `POST /api/analyze` (stem XOR file →
   YOLO detections + diagnosis + yield + display dots + sinogram in one response). Fixed
@@ -368,13 +370,13 @@ Other repo items: root-level `experiment.ipynb`,
   `waferImageUrl`, `waferCategories`, and small `useApi` hook.
 - `src/format.ts` — `dollars`, `percent`, `png`. `src/ui.ts` — shared Tailwind class
   constants (card/select/input/buttons/chip). `src/useCountUp.ts` — rAF count-up hook.
-- `src/App.tsx` — dark sidebar shell, routes (`/` Analyze, `/explorer`, `/yield`,
+- `src/App.tsx` — dark sidebar shell, routes (`/` Detect, `/explorer`, `/yield`,
   `/physics`); the disabled Line Monitor Stage 6 badge was removed 2026-07-04 (re-add a
   nav entry when Stage 6 ships).
 - Shared components: `components/WaferCanvas.tsx` (circular canvas, polygon overlays,
   dot markers, scan animation), `MetricTile.tsx`, `FieldHeatmap.tsx`, `DiagnosisCard.tsx`,
   `ParamField.tsx`.
-- Views: `views/Analyze.tsx` (home: upload + gallery picker + view tabs + inline report),
+- Views: `views/Detect.tsx` (home: upload + gallery picker + view tabs + inline report),
   `WaferExplorer.tsx`, `YieldAnalytics.tsx`, `PhysicsLab.tsx`.
 - No frontend tests (removed 2026-07-04 by user decision); `npm run build` is the gate.
 
@@ -484,9 +486,9 @@ Code tasks are complete. Remaining work is manual browser QA:
    `uv run python -m scripts.api.main --model-path waferdetect_runs/train/yolo26x_detector/weights/best.pt`
 2. Start the frontend:
    `cd frontend && npm run dev`
-3. Walk the Analyze home view (boot on demo wafer, gallery pick, image upload, both canvas
-   tabs + sinogram panel, what-if knobs, expandable report), Explorer filters, Yield
-   Analytics Pareto/wafer panel, and all four Physics Lab tabs.
+3. Walk the Detect home view (boot on demo wafer, gallery pick, image upload, all three
+   canvas tabs, what-if knobs, expandable report), Explorer filters, Yield Analytics
+   Pareto/wafer panel, and all four Physics Lab tabs.
 4. Check a narrow viewport (the UI is dark-native; there is no light theme).
 5. STOP for user review of response shapes and dashboard ergonomics before Stage 9.
 
