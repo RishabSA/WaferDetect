@@ -1,8 +1,8 @@
-import base64
 import io
+import base64
 import numpy as np
-from matplotlib.figure import Figure
 from PIL import Image
+from matplotlib.figure import Figure
 
 
 def field_png(field: np.ndarray, cmap: str = "viridis") -> str:
@@ -13,7 +13,7 @@ def field_png(field: np.ndarray, cmap: str = "viridis") -> str:
     axis.axis(False)
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
+    figure.savefig(buffer, format="png", dpi=300, bbox_inches="tight")
     return base64.b64encode(buffer.getvalue()).decode()
 
 
@@ -24,7 +24,7 @@ def sinogram_png(sinogram: np.ndarray) -> str:
     axis.axis(False)
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="png", dpi=100, bbox_inches="tight", pad_inches=0)
+    figure.savefig(buffer, format="png", dpi=300, bbox_inches="tight", pad_inches=0)
     return base64.b64encode(buffer.getvalue()).decode()
 
 

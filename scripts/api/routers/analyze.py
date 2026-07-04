@@ -1,8 +1,8 @@
 import io
 from pathlib import Path
+from PIL import Image
 import numpy as np
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
-from PIL import Image
 from skimage.transform import radon
 
 from scripts.analytics.diagnosis import diagnose, kb_path, load_knowledge_base
@@ -51,23 +51,29 @@ async def analyze(
     file: UploadFile | None = File(default=None),
 ) -> dict:
     if bool(stem) == (file is not None):
-        raise HTTPException(422, "provide exactly one of stem or file")
+        raise HTTPException(422, "Provide exactly one of stem or file")
 
     model = request.app.state.model
     if model is None:
-        raise HTTPException(503, "server started without --model-path")
+        raise HTTPException(503, "The model is not loaded")
 
+    # Load the image
     if stem:
         image_path = raw_images_dir / f"{stem}.jpg"
+
         if not image_path.is_file():
-            raise HTTPException(404, f"unknown wafer stem: {stem}")
+            raise HTTPException(404, f"Unknown wafer stem: {stem}")
+
         image = Image.open(image_path).convert("RGB")
     else:
         image = Image.open(io.BytesIO(await file.read())).convert("RGB")
 
+    # Extract die defect dot coordinates
     dots = dot_coordinates(np.asarray(image.convert("L")))
 
+    # Run the YOLO segmentation model
     result = model.predict(np.asarray(image), verbose=False)[0]
+
     names = load_class_names(classes_file)
     detections = (
         []
@@ -84,6 +90,7 @@ async def analyze(
         ]
     )
 
+    # Use extracted dots and detections to produce per-detection yield loss in dollars, an action form the knowledge-base, scratch kinematics, and a wafer summary
     report = diagnose(dots, detections, load_knowledge_base(kb_path), die_mm, die_value)
     for entry, (_, _, polygon) in zip(report["detections"], detections, strict=True):
         entry["polygon"] = polygon

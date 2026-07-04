@@ -1,4 +1,5 @@
 # Simplifications: plane-stress biaxial thermoelasticity from the wafer-mean temperature; constant thermal diffusivity; an effective Schmid factor instead of full tensor projection; CRSS constants are order-of-magnitude, not metrology
+
 import numpy as np
 from scipy.ndimage import zoom
 

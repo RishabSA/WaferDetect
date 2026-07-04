@@ -1,269 +1,246 @@
 import { useEffect, useState, type DependencyList } from "react";
 
 export interface WaferItem {
-  stem: string;
-  category: string;
-  split: string;
+	stem: string;
+	category: string;
+	split: string;
 }
 
 export interface WaferList {
-  total: number;
-  items: WaferItem[];
+	total: number;
+	items: WaferItem[];
 }
 
 export interface WaferInstance {
-  class: string;
-  vertices: number;
+	class: string;
+	vertices: number;
 }
 
 export interface WaferDetail {
-  stem: string;
-  category: string;
-  split: string;
-  instances: WaferInstance[];
-}
-
-export interface Detection {
-  class: string;
-  confidence: number;
-  polygon: [number, number][];
-  area_frac: number;
-  centroid_r: number;
+	stem: string;
+	category: string;
+	split: string;
+	instances: WaferInstance[];
 }
 
 export interface YieldLoss {
-  dies: number;
-  failed: number;
-  excess_failed: number;
-  yield_loss_frac: number;
-  dollars: number;
+	dies: number;
+	failed: number;
+	excess_failed: number;
+	yield_loss_frac: number;
+	dollars: number;
 }
 
 export interface KnowledgeEntry {
-  mechanism: string;
-  process_steps: string[];
-  tool_families: string[];
-  severity_weight: number;
-  action: string;
+	mechanism: string;
+	process_steps: string[];
+	tool_families: string[];
+	severity_weight: number;
+	action: string;
 }
 
 export interface Kinematics {
-  verdict: string;
-  orientation_deg: number;
-  radius_of_curvature: number | null;
-  arc_center?: [number, number] | null;
-  entry_bearing_deg: number | null;
+	verdict: string;
+	orientation_deg: number;
+	radius_of_curvature: number | null;
+	arc_center?: [number, number] | null;
+	entry_bearing_deg: number | null;
 }
 
 export interface DiagnosisDetection {
-  class: string;
-  confidence: number;
-  geometry: { area_frac: number; centroid_r: number };
-  yield_loss: YieldLoss;
-  diagnosis: KnowledgeEntry;
-  kinematics?: Kinematics;
+	class: string;
+	confidence: number;
+	geometry: { area_frac: number; centroid_r: number };
+	yield_loss: YieldLoss;
+	diagnosis: KnowledgeEntry;
+	kinematics?: Kinematics;
 }
 
 export interface WaferSummary {
-  gross_dies: number;
-  failed_dies: number;
-  yield: number;
-  d0_per_mm2: number | null;
-  alpha: number | null;
-  yield_random: number;
-  total_loss_dollars: number;
-}
-
-export interface DiagnosisReport {
-  detections: DiagnosisDetection[];
-  wafer_summary: WaferSummary;
+	gross_dies: number;
+	failed_dies: number;
+	yield: number;
+	d0_per_mm2: number | null;
+	alpha: number | null;
+	yield_random: number;
+	total_loss_dollars: number;
 }
 
 export interface YieldPanel {
-  summary: WaferSummary;
-  radial: number[];
-  zones: { center: number; mid: number; edge: number };
-  regions: YieldLoss[];
+	summary: WaferSummary;
+	radial: number[];
+	zones: { center: number; mid: number; edge: number };
+	regions: YieldLoss[];
 }
 
 export interface AnalyzeDetection extends DiagnosisDetection {
-  polygon: [number, number][];
+	polygon: [number, number][];
 }
 
 export interface AnalyzeResponse {
-  stem: string | null;
-  image: string;
-  dots: [number, number][];
-  sinogram: string;
-  detections: AnalyzeDetection[];
-  wafer_summary: WaferSummary;
-  radial: number[];
-  zones: { center: number; mid: number; edge: number };
-  ground_truth: string[] | null;
+	stem: string | null;
+	image: string;
+	dots: [number, number][];
+	sinogram: string;
+	detections: AnalyzeDetection[];
+	wafer_summary: WaferSummary;
+	radial: number[];
+	zones: { center: number; mid: number; edge: number };
+	ground_truth: string[] | null;
 }
 
 export interface ParetoResponse {
-  wafers: number;
-  pareto: [string, number][];
-}
-
-export interface GenerateResponse {
-  categories: string[];
-  labels: string[];
-  image: string;
+	wafers: number;
+	pareto: [string, number][];
 }
 
 export interface ThermalResponse {
-  temperature: string;
-  stress: string;
-  slip_probability: string;
-  sample: string;
-  stats: { min_temperature: number; max_temperature: number };
+	temperature: string;
+	stress: string;
+	slip_probability: string;
+	sample: string;
+	stats: { min_temperature: number; max_temperature: number };
 }
 
 export interface FieldResponse {
-  probability: string;
-  sample: string;
+	probability: string;
+	sample: string;
 }
 
 export interface ShotGridVerdict {
-  verdict: string;
-  intra_max_z: number;
-  intra_position?: [number, number];
-  shot_max_z: number;
-  shot_position?: [number, number];
+	verdict: string;
+	intra_max_z: number;
+	intra_position?: [number, number];
+	shot_max_z: number;
+	shot_position?: [number, number];
 }
 
 export interface ShotGridResponse {
-  field: string;
-  sample: string;
-  verdict: ShotGridVerdict;
+	field: string;
+	sample: string;
+	verdict: ShotGridVerdict;
 }
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(path, init);
-  if (!response.ok) {
-    throw new Error(
-      `${init?.method ?? "GET"} ${path} failed (${response.status}): ${await response.text()}`,
-    );
-  }
+	const response = await fetch(path, init);
+	if (!response.ok) {
+		throw new Error(
+			`${init?.method ?? "GET"} ${path} failed (${response.status}): ${await response.text()}`,
+		);
+	}
 
-  return response.json() as Promise<T>;
+	return response.json() as Promise<T>;
 };
 
 const postJson = <T>(path: string, body: unknown): Promise<T> =>
-  request<T>(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+	request<T>(path, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(body),
+	});
 
 export const api = {
-  wafers: (params: { split?: string; category?: string; offset?: number; limit?: number }) => {
-    const entries = Object.entries(params)
-      .filter(([, value]) => value !== undefined && value !== "")
-      .map(([key, value]) => [key, String(value)]);
-    const query = new URLSearchParams(entries);
-    return request<WaferList>(`/api/wafers?${query}`);
-  },
-  waferDetail: (stem: string) => request<WaferDetail>(`/api/wafers/${encodeURIComponent(stem)}`),
-  detect: (stem: string) =>
-    request<{ detections: Detection[] }>(`/api/detect?stem=${encodeURIComponent(stem)}`, {
-      method: "POST",
-    }),
-  analyze: (stem: string) =>
-    request<AnalyzeResponse>(`/api/analyze?stem=${encodeURIComponent(stem)}`, { method: "POST" }),
-  analyzeFile: (file: File) => {
-    const body = new FormData();
-    body.append("file", file);
-    return request<AnalyzeResponse>("/api/analyze", { method: "POST", body });
-  },
-  diagnose: (stem: string) =>
-    request<DiagnosisReport>(`/api/diagnose/${encodeURIComponent(stem)}`),
-  yieldWafer: (stem: string) =>
-    request<YieldPanel>(`/api/yield/wafer/${encodeURIComponent(stem)}`),
-  pareto: (split: string, limit: number) =>
-    request<ParetoResponse>(`/api/yield/pareto?split=${split}&limit=${limit}`),
-  generate: (body: {
-    categories: string[] | null;
-    physics_frac: number;
-    die_grid: number;
-    seed: number;
-  }) => postJson<GenerateResponse>("/api/generate", body),
-  thermal: (body: Record<string, number | null>) =>
-    postJson<ThermalResponse>("/api/physics/thermal", body),
-  spincoat: (body: { mode: string; seed: number }) =>
-    postJson<FieldResponse>("/api/physics/spincoat", body),
-  cmp: (body: { mode: string; seed: number }) =>
-    postJson<FieldResponse>("/api/physics/cmp", body),
-  shotgrid: (body: { mode: string; seed: number }) =>
-    postJson<ShotGridResponse>("/api/physics/shotgrid", body),
+	wafers: (params: {
+		split?: string;
+		category?: string;
+		offset?: number;
+		limit?: number;
+	}) => {
+		const entries = Object.entries(params)
+			.filter(([, value]) => value !== undefined && value !== "")
+			.map(([key, value]) => [key, String(value)]);
+		const query = new URLSearchParams(entries);
+		return request<WaferList>(`/api/wafers?${query}`);
+	},
+	waferDetail: (stem: string) =>
+		request<WaferDetail>(`/api/wafers/${encodeURIComponent(stem)}`),
+	analyze: (stem: string) =>
+		request<AnalyzeResponse>(`/api/analyze?stem=${encodeURIComponent(stem)}`, {
+			method: "POST",
+		}),
+	analyzeFile: (file: File) => {
+		const body = new FormData();
+		body.append("file", file);
+		return request<AnalyzeResponse>("/api/analyze", { method: "POST", body });
+	},
+	yieldWafer: (stem: string) =>
+		request<YieldPanel>(`/api/yield/wafer/${encodeURIComponent(stem)}`),
+	pareto: (split: string, limit: number) =>
+		request<ParetoResponse>(`/api/yield/pareto?split=${split}&limit=${limit}`),
+	thermal: (body: Record<string, number | null>) =>
+		postJson<ThermalResponse>("/api/physics/thermal", body),
+	spincoat: (body: { mode: string; seed: number }) =>
+		postJson<FieldResponse>("/api/physics/spincoat", body),
+	cmp: (body: { mode: string; seed: number }) =>
+		postJson<FieldResponse>("/api/physics/cmp", body),
+	shotgrid: (body: { mode: string; seed: number }) =>
+		postJson<ShotGridResponse>("/api/physics/shotgrid", body),
 };
 
 export const waferImageUrl = (stem: string): string =>
-  `/api/wafers/${encodeURIComponent(stem)}/image`;
+	`/api/wafers/${encodeURIComponent(stem)}/image`;
 
 export const waferCategories = [
-  "center",
-  "donut",
-  "edge_ring",
-  "edge_loc",
-  "scratch",
-  "random",
-  "loc",
-  "near_full",
-  "swirl",
-  "radial_spokes",
-  "shot_grid",
-  "crescent",
-  "half_wafer",
-  "wedge",
-  "comet",
-  "edge_scratch_tiny",
-  "edge_scratch_small",
-  "edge_scratch_medium",
-  "edge_scratch_large",
-  "lift_pin",
-  "bullseye",
-  "gradient",
-  "slip_lines",
-  "double_ring",
-  "combo",
+	"center",
+	"donut",
+	"edge_ring",
+	"edge_loc",
+	"scratch",
+	"random",
+	"loc",
+	"near_full",
+	"swirl",
+	"radial_spokes",
+	"shot_grid",
+	"crescent",
+	"half_wafer",
+	"wedge",
+	"comet",
+	"edge_scratch_tiny",
+	"edge_scratch_small",
+	"edge_scratch_medium",
+	"edge_scratch_large",
+	"lift_pin",
+	"bullseye",
+	"gradient",
+	"slip_lines",
+	"double_ring",
+	"combo",
 ];
 
 export const useApi = <T>(
-  loader: () => Promise<T>,
-  deps: DependencyList,
+	loader: () => Promise<T>,
+	deps: DependencyList,
 ): { data: T | null; error: string; loading: boolean } => {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+	const [data, setData] = useState<T | null>(null);
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError("");
-    loader()
-      .then((result) => {
-        if (!cancelled) {
-          setData(result);
-        }
-      })
-      .catch((cause: Error) => {
-        if (!cancelled) {
-          setError(cause.message);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+	useEffect(() => {
+		let cancelled = false;
+		setLoading(true);
+		setError("");
+		loader()
+			.then(result => {
+				if (!cancelled) {
+					setData(result);
+				}
+			})
+			.catch((cause: Error) => {
+				if (!cancelled) {
+					setError(cause.message);
+				}
+			})
+			.finally(() => {
+				if (!cancelled) {
+					setLoading(false);
+				}
+			});
 
-    return () => {
-      cancelled = true;
-    };
-  }, deps);
+		return () => {
+			cancelled = true;
+		};
+	}, deps);
 
-  return { data, error, loading };
+	return { data, error, loading };
 };

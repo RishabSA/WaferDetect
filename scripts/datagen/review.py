@@ -46,7 +46,7 @@ def write_review_sheets(generated_dir: Path, per_category: int = 5) -> Path:
             axis.axis(False)
 
         figure.suptitle(category)
-        figure.savefig(review_dir / f"{category}.png", dpi=100, bbox_inches="tight")
+        figure.savefig(review_dir / f"{category}.png", dpi=300, bbox_inches="tight")
         plt.close(figure)
 
     return review_dir

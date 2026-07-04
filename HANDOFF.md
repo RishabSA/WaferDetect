@@ -64,9 +64,11 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   `runs/analytics/0481_combo_half_wafer+donut.json` ($19064). Remaining Stage 5 work is the
   human report review/tuning gate.
 - **Stage 7 (FastAPI backend): code COMPLETE, 165/165 tests passing.** Implemented
-  `scripts/api/{main,plots}.py` plus routers for wafers, detection, diagnosis, yield,
-  generation, and physics. Added FastAPI/Uvicorn/multipart deps and `httpx` for TestClient.
-  The API can run model-free for all non-detection endpoints; `/api/detect` returns 503 when
+  `scripts/api/{main,plots}.py` plus routers for wafers, yield, and physics
+  (detect, diagnose, and generate routers existed until 2026-07-04: `/api/detect` and
+  `/api/generate` were deleted — `/api/analyze` is the inference endpoint now — and
+  `diagnose.py` merged into yields). Added FastAPI/Uvicorn/multipart deps and `httpx` for TestClient.
+  The API can run model-free for all non-inference endpoints; `/api/analyze` returns 503 when
   started without weights. **Stage 6 (monitoring) was deliberately skipped for now by user
   decision** — `/api/monitor/*` endpoints remain absent until Stage 6 adds its router later.
 - **Stage 1 baseline TRAINED (2026-07-02, A100):** test-split mask mAP50 **0.842** (≥ 0.80
@@ -332,7 +334,6 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 
 - `create_app(model_path: Path | None) -> FastAPI`; loads YOLO once into `app.state.model`
   when a path is provided, otherwise leaves non-detection endpoints available.
-- `GET /api/health` returns status and model-loaded boolean.
 - CLI: `uv run python -m scripts.api.main --model-path <weights> --host 127.0.0.1 --port 8000`.
 
 `scripts/api/routers/wafers.py`:
@@ -341,24 +342,13 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 - `GET /api/wafers/{stem}`
 - `GET /api/wafers/{stem}/image`
 
-`scripts/api/routers/detect.py`:
-
-- `detections_to_response(class_ids, confidences, segments, class_names) -> list[dict]`
-- `POST /api/detect` accepts exactly one of `stem` query or multipart `file`; requires model.
-
-`scripts/api/routers/diagnose.py`:
-
-- `wafer_dots_and_detections(stem) -> tuple`
-- `GET /api/diagnose/{stem}?die_mm=6&die_value=25`
-
 `scripts/api/routers/yields.py`:
 
+- `wafer_dots_and_detections(stem) -> tuple` (moved here when `routers/diagnose.py` was
+  deleted 2026-07-04; the ground-truth `GET /api/diagnose/{stem}` endpoint was removed —
+  `/api/analyze` covers full reports via model predictions)
 - `GET /api/yield/wafer/{stem}?die_mm=6&die_value=25`
 - `GET /api/yield/pareto?split=test&limit=0&die_value=25`
-
-`scripts/api/routers/generate.py`:
-
-- `POST /api/generate` with categories or generator sampling params returns labels + PNG.
 
 `scripts/api/routers/physics.py`:
 
@@ -514,7 +504,7 @@ Code tasks are complete. Remaining manual gate requires the real Stage 1 checkpo
 2. Start the server:
    `uv run python -m scripts.api.main --model-path runs/train/stage1_baseline/weights/best.pt`
 3. Review `http://127.0.0.1:8000/docs`.
-4. Exercise `/api/detect?stem=0101_scratch`, `/api/diagnose/0101_scratch`,
+4. Exercise `/api/analyze?stem=0101_scratch`,
    `/api/yield/pareto?split=test&limit=20`, and `/api/physics/thermal`.
 5. STOP for user review of response shapes before Stage 8 builds the dashboard.
 

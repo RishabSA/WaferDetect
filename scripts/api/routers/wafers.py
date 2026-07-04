@@ -41,7 +41,7 @@ def list_wafers(
 def wafer_detail(stem: str) -> dict:
     label_path = raw_labels_dir / f"{stem}.txt"
     if not label_path.is_file():
-        raise HTTPException(404, f"unknown wafer stem: {stem}")
+        raise HTTPException(404, f"Unknown wafer stem: {stem}")
 
     names = load_class_names(classes_file)
     instances = [
@@ -61,6 +61,6 @@ def wafer_detail(stem: str) -> dict:
 def wafer_image(stem: str) -> FileResponse:
     image_path = raw_images_dir / f"{stem}.jpg"
     if not image_path.is_file():
-        raise HTTPException(404, f"unknown wafer stem: {stem}")
+        raise HTTPException(404, f"Unknown wafer stem: {stem}")
 
     return FileResponse(image_path, media_type="image/jpeg")

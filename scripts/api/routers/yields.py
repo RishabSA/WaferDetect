@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+from pathlib import Path
+from PIL import Image
+import numpy as np
+from fastapi import APIRouter, HTTPException
 
 from scripts.analytics.diagnosis import kb_path, load_knowledge_base
 from scripts.analytics.diegrid import radial_yield, wafer_summary, zone_yields
@@ -8,10 +11,30 @@ from scripts.analytics.yieldmodels import (
     estimate_defect_density,
     quadrat_counts,
 )
-from scripts.api.routers.diagnose import wafer_dots_and_detections
+from scripts.baselines.classical import dot_coordinates
+from scripts.perception.annotations import load_class_names, load_label_file
 from scripts.perception.dataset import read_manifests
 
 router = APIRouter()
+
+classes_file = Path("data/raw/classes.txt")
+raw_images_dir = Path("data/raw/images")
+raw_labels_dir = Path("data/raw/labels")
+
+
+def wafer_dots_and_detections(stem: str) -> tuple:
+    image_path = raw_images_dir / f"{stem}.jpg"
+    if not image_path.is_file():
+        raise HTTPException(404, f"unknown wafer stem: {stem}")
+
+    image = np.asarray(Image.open(image_path).convert("L"))
+    names = load_class_names(classes_file)
+    instances = load_label_file(raw_labels_dir / f"{stem}.txt")
+    detections = [
+        (names[instance.class_id], 1.0, instance.polygon) for instance in instances
+    ]
+
+    return dot_coordinates(image), detections
 
 
 @router.get("/api/yield/wafer/{stem}")

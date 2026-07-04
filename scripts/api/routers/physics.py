@@ -74,6 +74,7 @@ def thermal(request: ThermalRequest) -> dict:
     angles = phase + np.arange(3) * 2 * np.pi / 3
     pins = np.stack([0.55 * np.cos(angles), 0.55 * np.sin(angles)], axis=1)
     spot = None
+
     if request.spot_x is not None and request.spot_y is not None:
         spot = (request.spot_x, request.spot_y)
 

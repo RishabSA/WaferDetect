@@ -1,8 +1,18 @@
+# API documentation at /docs
+
 import argparse
 from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from ultralytics import YOLO
+
+from scripts.api.routers import (
+    analyze,
+    physics,
+    wafers,
+    yields,
+)
 
 default_model_path = Path("runs/train/stage1_baseline/weights/best.pt")
 cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
@@ -18,27 +28,11 @@ def create_app(model_path: Path | None) -> FastAPI:
     )
 
     if model_path is not None:
-        from ultralytics import YOLO
-
         app.state.model = YOLO(model_path)
     else:
         app.state.model = None
 
-    @app.get("/api/health")
-    def health() -> dict:
-        return {"status": "ok", "model_loaded": app.state.model is not None}
-
-    from scripts.api.routers import (
-        analyze,
-        detect,
-        diagnose,
-        generate,
-        physics,
-        wafers,
-        yields,
-    )
-
-    for router_module in (analyze, detect, diagnose, generate, physics, wafers, yields):
+    for router_module in (analyze, physics, wafers, yields):
         app.include_router(router_module.router)
 
     return app
@@ -68,4 +62,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    uvicorn.run(create_app(Path(args.model_path)), host=args.host, port=args.port)
+    app = create_app(Path(args.model_path))
+    uvicorn.run(app=app, host=args.host, port=args.port)
