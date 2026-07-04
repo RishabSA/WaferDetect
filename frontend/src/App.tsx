@@ -34,7 +34,11 @@ const App = () => {
 
 	const brand = (
 		<div className="flex items-center gap-2.5 px-2">
-			<span className="h-7 w-7 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.55)]" />
+			<img
+				src="/assets/icon.svg"
+				alt="WaferDetect"
+				className="h-7 w-7 shrink-0"
+			/>
 			<h1 className="text-lg font-bold tracking-tight text-white">
 				Wafer<span className="text-cyan-400">Detect</span>
 			</h1>

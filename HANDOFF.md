@@ -77,12 +77,15 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   donut masks); edge_scratch_tiny subset 0.995. **0.842 is the frozen Gate B bar.** Weights in
   `runs/train/stage1_baseline/weights/best.pt` (user's `waferdetect_runs/`). Known data wart:
   ultralytics deduped duplicate label lines in `0170_swirl` (3) and one combo file (1).
-- **Stage 8 (dashboard frontend): code COMPLETE + UI REDESIGN (2026-07-02), frontend 6/6 tests
-  passing, Python 169/169 tests passing.** React 19 + TypeScript + Vite + Tailwind v4 in
+- **Stage 8 (dashboard frontend): code COMPLETE + UI REDESIGN (2026-07-02).** Frontend tests
+  were removed entirely on 2026-07-04 by user decision (vitest/jsdom/testing-library
+  uninstalled; `npm run build` = tsc is the only frontend gate). Python suite: 141/141.
+  React 19 + TypeScript + Vite + Tailwind v4 in
   `frontend/`, redesigned dark-native ("fab control room": cyan/violet on near-black, glassy
   cards, scan-line loading animation, count-up hero numbers). The home view is now **Analyze**
   (`views/Analyze.tsx`): boots on demo wafer `0101_scratch`, auto-fetches on wafer pick or
-  image upload (no button), three canvas views (detections / defect dots / Radon sinogram),
+  image upload (no button), two canvas tabs (detections / defect dots) + always-visible
+  Radon sinogram side panel,
   headline loss+yield front and center, inline expandable report — the separate Detection
   Viewer and Reports views were deleted. Backed by new `POST /api/analyze` (stem XOR file →
   YOLO detections + diagnosis + yield + display dots + sinogram in one response). Fixed
@@ -368,7 +371,7 @@ Other repo items: root-level `experiment.ipynb`,
 `frontend/` — Stage 8 dashboard:
 
 - Vite/React/Tailwind configs: `package.json`, `vite.config.ts`, three tsconfigs,
-  `index.html`, `src/index.css` (theme background, `.bg-grid`, scan/fade keyframes).
+  `index.html`, `src/index.css` (flat theme background, scan/fade keyframes).
 - `src/api.ts` — typed Stage 7/analyze response interfaces, relative `/api` client,
   `waferImageUrl`, `waferCategories`, and small `useApi` hook.
 - `src/format.ts` — `dollars`, `percent`, `png`. `src/ui.ts` — shared Tailwind class
@@ -380,7 +383,7 @@ Other repo items: root-level `experiment.ipynb`,
   `ParamField.tsx`.
 - Views: `views/Analyze.tsx` (home: upload + gallery picker + view tabs + inline report),
   `WaferExplorer.tsx`, `YieldAnalytics.tsx`, `PhysicsLab.tsx`.
-- Frontend tests: `src/format.test.ts`, `src/components/WaferCanvas.test.tsx`.
+- No frontend tests (removed 2026-07-04 by user decision); `npm run build` is the gate.
 
 ## 5. Load-bearing decisions and their reasons
 

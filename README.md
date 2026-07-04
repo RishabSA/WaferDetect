@@ -1,9 +1,16 @@
-# WaferDetect
+<p align="center">
+  <img src="frontend/public/assets/icon.svg" alt="WaferDetect icon" width="110" />
+</p>
 
-Wafer-map defect intelligence for semiconductor manufacturing: detect and segment failure
-patterns on wafer maps with a deep segmentation model trained entirely on synthetic data, then
-turn detections into the answers a fab actually needs — what pattern, where, what caused it,
-and what it cost.
+<h1 align="center">WaferDetect</h1>
+
+<p align="center">
+  <strong>Wafer-map defect intelligence for semiconductor fabs</strong><br />
+  Detect and segment failure patterns, diagnose their root causes, and quantify
+  the yield loss in dollars — from a model trained entirely on synthetic data.
+</p>
+
+---
 
 ## Why wafer maps
 
@@ -19,7 +26,44 @@ it does so with models trained on synthetic wafer maps.
 Instance segmentation (rather than whole-image classification) is the core design choice:
 real wafers carry co-occurring defects, and a classifier can only ever name one. The detector
 localizes every pattern on the wafer with a polygon mask, which also unlocks the downstream
-analytics — defect area, scratch orientation, and per-defect yield-loss attribution.
+analytics — defect area, scratch kinematics, and per-defect yield-loss attribution.
+
+## What it does
+
+```
+wafer image ──► YOLO26-seg detection ──► root-cause diagnosis ──► yield & $ economics
+                (21 defect classes,      (knowledge base +        (die grid, Poisson/
+                 polygon masks)           scratch kinematics)      negative-binomial, $/defect)
+```
+
+One request to `POST /api/analyze` (a dataset wafer or an uploaded image) returns the
+detections with confidence and masks, a per-defect diagnosis (mechanism, responsible process
+steps, recommended action, scratch kinematics verdicts), the wafer yield summary (gross/failed
+dies, defect density D0, cluster factor α), the dollar loss attributed to each defect region,
+and a Radon sinogram of the defect dots — everything the dashboard shows.
+
+## Highlights
+
+- **Perception** — YOLO26-seg trained on the synthetic dataset; frozen 87-wafer test split:
+  **mask mAP50 0.842**, box mAP50 0.896, ~4 ms/wafer on an A100. Classical baseline for
+  scale: zone-density + Radon + SVM reaches 0.819 accuracy on single-defect wafers and 0 on
+  multi-defect combos — the gap segmentation exists to close.
+- **Data engine** — every defect class is a parametric 2D intensity field over the wafer
+  disk; the same field samples the failing-die dots _and_ derives the polygon label, so
+  pixels and labels cannot drift apart. Scales to 10k+ images with visual QA sheets.
+- **Physics suite** — four first-principles simulators that _cause_ patterns instead of
+  drawing them: a finite-difference thermal solver whose stress field places slip lines,
+  Emslie–Bonner–Peck spin-coating, Preston-equation CMP, and a stepper shot-grid model —
+  all pluggable into the generator and interactive in the dashboard's Physics Lab.
+- **Analytics** — virtual die grid, Poisson and negative-binomial (Stapper) yield models,
+  excess-over-background dollar attribution per defect, scratch kinematics (line vs. arc,
+  entry bearing), and a 21-class root-cause knowledge base.
+- **Real-data validation** — a WM-811K pipeline (conversion, rendering, zero-shot scoring,
+  few-shot fine-tuning) for testing synthetic-to-real transfer on 811k real fab wafers.
+- **Dashboard** — FastAPI backend + React 19/TypeScript/Tailwind frontend: an Analyze home
+  view (upload or browse, detection overlays, defect-dot and sinogram views, inline
+  diagnosis report), Wafer Explorer, Yield Analytics with a fleet-wide Pareto of loss by
+  process step, and the interactive Physics Lab.
 
 ## Dataset
 
@@ -32,32 +76,9 @@ analytics — defect area, scratch orientation, and per-defect yield-loss attrib
 - Frozen, stratified 406/87/87 train/val/test split (seed 42) — the 87-wafer test split is the
   fixed measuring stick for every model in the project.
 
-## Current state
-
-- **Stage 1 — foundation & baseline (complete):** validated data pipeline, deterministic
-  split manifests, YOLO dataset layout builder, YOLO26-seg training CLI with a wafer-aware
-  augmentation policy (mosaic disabled — collaged part-wafers are physically impossible;
-  full rotation/flips — wafer scenes are rotation-valid), and an evaluation harness that
-  reports per-class box/mask mAP plus dedicated combo and tiny-scratch subsets.
-- **Stage 2 — data engine (implemented):** a parametric generator in which each defect class
-  is a 2D intensity field over the wafer disk; the same field samples the failing-die dots
-  _and_ produces the polygon label, scaling the dataset to 10k+ images. Includes per-category
-  visual QA sheets, a layout builder that always evaluates against the frozen raw test split,
-  and two whole-image baselines for comparison: zone-density + Radon + SVM (the classical
-  wafer-map method). The 10k generation and data-scaling study run
-  on GPU next.
-- **Stage 3 — physics simulation suite (planned):** first-principles simulations that _cause_
-  defect patterns instead of drawing them — a heat-equation thermal solver whose stress field
-  places slip lines, Emslie–Bonner–Peck spin-coating and Preston CMP uniformity models for
-  rings/gradients, and a stepper shot-grid model with the repeating reticle-defect signature —
-  plugged into the generator as physics-informed generation modes.
-- **Later stages:** a yield-economics and root-cause analytics engine, SPC excursion
-  monitoring, and a FastAPI + React dashboard.
-  See `docs/superpowers/specs/` for the full design.
-
 ## Setup and usage
 
-Requires Python ≥ 3.13 and [uv](https://docs.astral.sh/uv/).
+Requires Python ≥ 3.13, [uv](https://docs.astral.sh/uv/), and Node ≥ 20 for the frontend.
 
 ```bash
 uv sync
@@ -68,38 +89,57 @@ uv run python -m scripts.perception.dataset --force
 # train (local Apple Silicon: --device mps; CUDA: --device 0)
 uv run python -m scripts.perception.train --device mps
 
-# evaluate the trained model on the frozen test split + subsets
+# evaluate on the frozen test split + combo/tiny subsets
 uv run python -m scripts.perception.evaluate
 
-# generate synthetic wafers with auto-derived polygon labels (Stage 2 data engine)
+# generate synthetic wafers with auto-derived polygon labels
 uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000
+
+# diagnose a single wafer image from the command line
+uv run python -m scripts.analytics.diagnosis --image data/raw/images/0101_scratch.jpg \
+  --labels data/raw/labels/0101_scratch.txt
 
 # run the test suite
 uv run pytest
 ```
 
-Full training runs are intended for GPU; outputs land in `runs/train/<name>/` and `runs/eval/<name>/`.
+Run the dashboard (two terminals):
+
+```bash
+# 1 — API on 127.0.0.1:8000
+uv run python -m scripts.api.main --model-path waferdetect_runs/train/stage1_baseline/weights/best.pt
+
+# 2 — frontend on http://localhost:5173
+cd frontend && npm install && npm run dev
+```
+
+Full training runs are intended for GPU (Colab notebooks in `colab/`); outputs land in
+`runs/train/<name>/` and `runs/eval/<name>/`.
 
 ## Project structure
 
 ```
 data/raw/                  source dataset: images, labels, overlays, classes.txt (immutable)
 data/splits/               frozen train/val/test manifests (seed 42)
-data/yolo/                 derived YOLO layout (generated, gitignored)
 scripts/
-  perception/
-    annotations.py         label parsing (DefectInstance, class-name registry)
-    dataset.py             stratified split, manifests, YOLO layout builder (CLI)
-    train.py               YOLO26-seg training CLI with the wafer augmentation policy
-    evaluate.py            test-split + combo/tiny-subset evaluation, metrics.json + report.md
-  datagen/
-    fields.py              24 per-category intensity-field builders over the wafer disk
-    labels.py              field -> polygon auto-labeling, YOLO line writer, mask IoU
-    generator.py           dot sampling, rendering, combos, die-grid quantization (CLI)
-    review.py              per-category visual QA sheets with polygon overlays (CLI)
-    layout.py              generated set -> YOLO layout, test wired to the raw split (CLI)
-  baselines/
-    classical.py           zone-density + Radon features + SVM baseline (CLI)
+  perception/              label parsing, split/layout builder, YOLO26-seg train + evaluate
+  datagen/                 intensity fields, auto-labeling, generator, QA sheets, layouts
+    physics/               thermal, spin-coat, CMP, and shot-grid simulators
+  baselines/               zone-density + Radon + SVM and ResNet whole-image baselines
+  wm811k/                  WM-811K conversion, rendering, zero-shot and few-shot pipelines
+  analytics/               die grid, yield models, $-economics, kinematics, knowledge base
+  api/                     FastAPI app: analyze, wafers, yield, physics routers
+frontend/                  React 19 + TypeScript + Vite + Tailwind dashboard
+colab/                     GPU runbooks for training and the WM-811K studies
 docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite
 ```
+
+## Roadmap
+
+- SPC excursion monitoring (stream simulator → EWMA/CUSUM control charts → the dashboard's
+  Line Monitor view).
+- The 10k-image generation run and data-scaling study against the frozen 0.842 baseline.
+- WM-811K zero-shot and few-shot transfer studies on real fab data.
+- Spatial statistics (complete-spatial-randomness tests, wafer similarity search, stacked
+  lot maps) and tool-commonality analysis.
