@@ -7,7 +7,7 @@ import yaml
 from PIL import Image
 from ultralytics import YOLO
 
-from scripts.analytics.diegrid import default_die_mm, wafer_summary
+from scripts.analytics.diegrid import wafer_summary
 from scripts.analytics.economics import decompose, points_in_polygon
 from scripts.analytics.kinematics import scratch_verdict
 from scripts.analytics.yieldmodels import (
@@ -26,6 +26,7 @@ out_root = Path("runs/analytics")
 
 scratch_classes = ("scratch", "edge_scratch")
 min_kinematics_dots = 5
+default_die_mm = 6.0
 
 
 def load_knowledge_base(path: Path) -> dict:
@@ -167,6 +168,7 @@ if __name__ == "__main__":
     os.makedirs(args.out_dir, exist_ok=True)
     out_path = Path(args.out_dir) / f"{image_path.stem}.json"
     out_path.write_text(json.dumps(report, indent=2) + "\n")
+
     print(
         f"Total attributed loss: ${report['wafer_summary']['total_loss_dollars']:.0f}"
     )

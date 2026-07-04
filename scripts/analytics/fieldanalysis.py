@@ -8,6 +8,7 @@ def shot_matrices(
     n_shot_rows = int(np.ceil(rows / field_rows))
     n_shot_cols = int(np.ceil(cols / field_cols))
 
+    # Compute the per-shot matrix (mean failure over each field-sized block)
     per_shot = np.zeros((n_shot_rows, n_shot_cols))
     for i in range(n_shot_rows):
         for j in range(n_shot_cols):
@@ -17,7 +18,8 @@ def shot_matrices(
             ]
             per_shot[i, j] = block.mean()
 
-    # Fold all shots into one reticle field and normalize partial edge blocks.
+    # Compute the intra-field matrix, made by folding every block onto a single reticle field with index modulo
+    # Fold all shots into one reticle field and normalize partial edge blocks
     intra = np.zeros((field_rows, field_cols))
     counts = np.zeros((field_rows, field_cols))
     row_index = np.arange(rows) % field_rows

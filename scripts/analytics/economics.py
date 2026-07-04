@@ -1,13 +1,17 @@
 import numpy as np
 from matplotlib.path import Path as PolygonPath
 
-from scripts.analytics.diegrid import default_die_mm, die_centers, failed_dies
+from scripts.analytics.diegrid import die_centers, failed_dies
 from scripts.datagen.generator import wafer_frac
 from scripts.datagen.labels import image_to_wafer
+
+default_die_mm = 6.0
 
 
 def points_in_polygon(points: np.ndarray, polygon_image: list) -> np.ndarray:
     polygon_wafer = image_to_wafer(polygon_image, wafer_frac)
+
+    # Vectorized point-in-polygon is used to convert the polygon to wafer coordinates first
     return PolygonPath(polygon_wafer).contains_points(points)
 
 
@@ -25,6 +29,7 @@ def decompose(
     for mask in region_masks:
         inside_any |= mask
 
+    # Find every die that's outside all detected regions and measures the failure rate there, which is the wafer's random background (failures that would have happened anyway)
     outside = ~inside_any
     background_rate = float(failed[outside].mean()) if outside.any() else 0.0
 
@@ -33,7 +38,8 @@ def decompose(
         dies_in = int(mask.sum())
         failed_in = int((failed & mask).sum())
 
-        # Attribute only failures above the wafer's random-background rate.
+        # Attribute only failures above the wafer's random-background rate
+        # Each detection is billed only for its excess
         excess = max(failed_in - background_rate * dies_in, 0.0)
         regions.append(
             {

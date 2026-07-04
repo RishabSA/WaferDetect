@@ -15,9 +15,10 @@ def die_centers(die_mm: float = default_die_mm) -> np.ndarray:
     axis = -span / 2 + die * (np.arange(count) + 0.5)
     xx, yy = np.meshgrid(axis, axis)
 
-    # Worst-corner check: the whole die square must fit inside the usable radius.
+    # Worst-corner check: the whole die square must fit inside the usable radius
     corner = np.hypot(np.abs(xx) + die / 2, np.abs(yy) + die / 2)
     keep = corner <= usable
+
     return np.stack([xx[keep], yy[keep]], axis=1)
 
 
@@ -27,8 +28,11 @@ def failed_dies(dots: np.ndarray, die_mm: float = default_die_mm) -> np.ndarray:
         return np.zeros(len(centers), dtype=bool)
 
     die = die_mm / wafer_radius_mm
+
+    # |dot − center| <= die / 2 is computed along both axes, and a die is counted as failed if any dot lands in it
     inside_x = np.abs(dots[None, :, 0] - centers[:, None, 0]) <= die / 2
     inside_y = np.abs(dots[None, :, 1] - centers[:, None, 1]) <= die / 2
+
     return (inside_x & inside_y).any(axis=1)
 
 
