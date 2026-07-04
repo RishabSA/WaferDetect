@@ -38,12 +38,17 @@ def wafer_dots_and_detections(stem: str) -> tuple:
 
 
 @router.get("/api/yield/wafer/{stem}")
-def yield_wafer(stem: str, die_mm: float = 6.0, die_value: float = 25.0) -> dict:
+def yield_wafer(
+    stem: str,
+    die_mm: float = 6.0,
+    die_value: float = 25.0,
+    wafer_radius_mm: float = 150.0,
+) -> dict:
     dots, detections = wafer_dots_and_detections(stem)
     polygons = [polygon for _, _, polygon in detections]
-    economics = decompose(dots, polygons, die_mm, die_value)
+    economics = decompose(dots, polygons, die_mm, die_value, wafer_radius_mm)
 
-    summary = wafer_summary(dots, die_mm)
+    summary = wafer_summary(dots, die_mm, wafer_radius_mm)
     failed_fraction = 1 - summary["yield"]
     summary["d0_per_mm2"] = (
         estimate_defect_density(failed_fraction, die_mm**2)
@@ -59,8 +64,8 @@ def yield_wafer(stem: str, die_mm: float = 6.0, die_value: float = 25.0) -> dict
 
     return {
         "summary": summary,
-        "radial": radial_yield(dots, die_mm),
-        "zones": zone_yields(dots, die_mm),
+        "radial": radial_yield(dots, die_mm, wafer_radius_mm=wafer_radius_mm),
+        "zones": zone_yields(dots, die_mm, wafer_radius_mm),
         "regions": economics["regions"],
     }
 

@@ -1,7 +1,7 @@
 import numpy as np
 from skimage.transform import radon
 
-raster_size = 64
+raster_size = 128
 n_angles = 180
 straightness_tolerance = 0.05
 concentric_center_tolerance = 0.3
@@ -9,7 +9,7 @@ arc_chord_ratio_limit = 2.0
 
 
 def radon_orientation(points: np.ndarray) -> float:
-    # Rasterize the points to 64x64 and Radon-transforms at 1 degree steps
+    # Rasterize the points and Radon-transforms at 1 degree steps
     grid = np.zeros((raster_size, raster_size))
 
     cols = np.clip(

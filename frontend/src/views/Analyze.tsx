@@ -1,6 +1,6 @@
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { FaUpload } from "react-icons/fa";
+import { FaInfoCircle, FaUpload } from "react-icons/fa";
 import { Link, useSearchParams } from "react-router";
 import {
 	Bar,
@@ -15,6 +15,7 @@ import {
 import type { AnalyzeResponse } from "../api";
 import { api, useApi, waferCategories, waferImageUrl } from "../api";
 import DiagnosisCard from "../components/DiagnosisCard";
+import InfoModal from "../components/InfoModal";
 import MetricTile from "../components/MetricTile";
 import { overlayColors, WaferCanvas } from "../components/WaferCanvas";
 import { dollars, percent, png } from "../format";
@@ -24,13 +25,20 @@ import {
 	chip,
 	errorText,
 	heading,
+	input,
 	select,
 	subtle,
 } from "../ui";
 import useCountUp from "../useCountUp";
+import useDebounced from "../useDebounced";
 
 const demoStem = "0101_scratch";
 const galleryLimit = 14;
+const waferPresets = [50, 75, 100, 150, 225];
+const dieMmMin = 3;
+const dieMmMax = 20;
+const typicalWaferValueMin = 2000;
+const typicalWaferValueMax = 500000;
 
 const viewTabs = [
 	{ key: "detections", label: "Detections" },
@@ -55,12 +63,29 @@ const Analyze = () => {
 	const [view, setView] = useState<ViewKey>("detections");
 	const [hidden, setHidden] = useState<number[]>([]);
 	const [category, setCategory] = useState("");
+	const [waferPreset, setWaferPreset] = useState("150");
+	const [customRadiusInput, setCustomRadiusInput] = useState("150");
+	const [customRadius, setCustomRadius] = useState(150);
+	const [dieMm, setDieMm] = useState(6);
+	const [dieValueInput, setDieValueInput] = useState("25");
+	const [dieValue, setDieValue] = useState(25);
+	const [showSinogramInfo, setShowSinogramInfo] = useState(false);
 	const fileRef = useRef<HTMLInputElement>(null);
 
-	const analysis = useApi<AnalyzeResponse>(
-		() => (file ? api.analyzeFile(file) : api.analyze(stem)),
-		[stem, file],
-	);
+	const waferRadius =
+		waferPreset === "other" ? customRadius : Number(waferPreset);
+	const dieMmDebounced = useDebounced(dieMm);
+	const dieValueDebounced = useDebounced(dieValue);
+	const waferRadiusDebounced = useDebounced(waferRadius);
+
+	const analysis = useApi<AnalyzeResponse>(() => {
+		const params = {
+			die_mm: dieMmDebounced,
+			die_value: dieValueDebounced,
+			wafer_radius_mm: waferRadiusDebounced,
+		};
+		return file ? api.analyzeFile(file, params) : api.analyze(stem, params);
+	}, [stem, file, dieMmDebounced, dieValueDebounced, waferRadiusDebounced]);
 	const gallery = useApi(
 		() => api.wafers({ category, limit: galleryLimit }),
 		[category],
@@ -73,6 +98,13 @@ const Analyze = () => {
 	const lossValue = useCountUp(summary?.total_loss_dollars ?? 0);
 	const yieldValue = useCountUp((summary?.yield ?? 0) * 100);
 
+	const goodDies = summary ? summary.gross_dies - summary.failed_dies : null;
+	const impliedWaferValue = goodDies === null ? null : goodDies * dieValue;
+	const valueWarning =
+		impliedWaferValue !== null &&
+		(impliedWaferValue < typicalWaferValueMin ||
+			impliedWaferValue > typicalWaferValueMax);
+
 	const selectWafer = (nextStem: string) => {
 		setFile(null);
 		setSearchParams({ stem: nextStem });
@@ -81,6 +113,22 @@ const Analyze = () => {
 	const onUpload = (nextFile: File | undefined) => {
 		if (nextFile) {
 			setFile(nextFile);
+		}
+	};
+
+	const onDieValue = (event: ChangeEvent<HTMLInputElement>) => {
+		setDieValueInput(event.target.value);
+		const next = Number(event.target.value);
+		if (Number.isFinite(next) && next > 0) {
+			setDieValue(next);
+		}
+	};
+
+	const onCustomRadius = (event: ChangeEvent<HTMLInputElement>) => {
+		setCustomRadiusInput(event.target.value);
+		const next = Number(event.target.value);
+		if (Number.isFinite(next) && next > 0) {
+			setCustomRadius(next);
 		}
 	};
 
@@ -119,25 +167,6 @@ const Analyze = () => {
 						analyzing…
 					</span>
 				)}
-				<div className="ml-auto">
-					<input
-						ref={fileRef}
-						type="file"
-						accept="image/*"
-						className="hidden"
-						onChange={(event: ChangeEvent<HTMLInputElement>) =>
-							onUpload(event.target.files?.[0])
-						}
-					/>
-					<button
-						onClick={() => fileRef.current?.click()}
-						className={buttonPrimary}>
-						<span className="flex items-center gap-2">
-							<FaUpload size={12} />
-							Upload wafer
-						</span>
-					</button>
-				</div>
 			</div>
 
 			{analysis.error && (
@@ -150,7 +179,7 @@ const Analyze = () => {
 
 			<div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)_minmax(0,5fr)]">
 				<div className="flex flex-col gap-3">
-					<div className="flex gap-1.5">
+					<div className="flex items-center gap-1.5">
 						{viewTabs.map(tab => (
 							<button
 								key={tab.key}
@@ -163,6 +192,25 @@ const Analyze = () => {
 								{tab.label}
 							</button>
 						))}
+						<div className="ml-auto">
+							<input
+								ref={fileRef}
+								type="file"
+								accept="image/*"
+								className="hidden"
+								onChange={(event: ChangeEvent<HTMLInputElement>) =>
+									onUpload(event.target.files?.[0])
+								}
+							/>
+							<button
+								onClick={() => fileRef.current?.click()}
+								className={buttonPrimary}>
+								<span className="flex items-center gap-2">
+									<FaUpload size={12} />
+									Upload wafer
+								</span>
+							</button>
+						</div>
 					</div>
 
 					<div
@@ -195,7 +243,15 @@ const Analyze = () => {
 				</div>
 
 				<div className={`${card} h-fit`}>
-					<h3 className="text-sm font-semibold text-white">Radon sinogram</h3>
+					<div className="flex items-center justify-between">
+						<h3 className="text-sm font-semibold text-white">Radon sinogram</h3>
+						<button
+							onClick={() => setShowSinogramInfo(true)}
+							aria-label="About the Radon sinogram"
+							className="cursor-pointer rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/5 hover:text-cyan-300">
+							<FaInfoCircle size={14} />
+						</button>
+					</div>
 					{data ? (
 						<img
 							src={png(data.sinogram)}
@@ -205,10 +261,6 @@ const Analyze = () => {
 					) : (
 						<div className="mt-2 aspect-3/2 w-full animate-pulse rounded-lg bg-neutral-900" />
 					)}
-					<p className={`mt-2 ${subtle}`}>
-						Radon transform of the defect dots — each column is one projection
-						angle; bright sine traces reveal linear and radial structure.
-					</p>
 				</div>
 
 				<div className="flex flex-col gap-4">
@@ -245,6 +297,76 @@ const Analyze = () => {
 								value={topDefect ? topDefect.class : "none"}
 								accent="text-cyan-300"
 							/>
+						</div>
+					</div>
+
+					<div className={card}>
+						<h3 className="text-sm font-semibold text-white">
+							What-if parameters
+						</h3>
+						<div className="mt-3 flex flex-col gap-3">
+							<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+								Wafer size
+								<select
+									value={waferPreset}
+									onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+										setWaferPreset(event.target.value)
+									}
+									className={select}>
+									{waferPresets.map(radius => (
+										<option key={radius} value={String(radius)}>
+											{radius} mm radius ({radius * 2} mm diameter)
+										</option>
+									))}
+									<option value="other">Other…</option>
+								</select>
+							</label>
+							{waferPreset === "other" && (
+								<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+									Custom radius (mm)
+									<input
+										type="number"
+										value={customRadiusInput}
+										min={10}
+										step={5}
+										onChange={onCustomRadius}
+										className={input}
+									/>
+								</label>
+							)}
+							<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+								Die size — {dieMm.toFixed(1)} mm
+								<input
+									type="range"
+									min={dieMmMin}
+									max={dieMmMax}
+									step={0.5}
+									value={dieMm}
+									onChange={(event: ChangeEvent<HTMLInputElement>) =>
+										setDieMm(Number(event.target.value))
+									}
+									className="w-full cursor-pointer accent-cyan-400"
+								/>
+							</label>
+							<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+								Value per good die ($)
+								<input
+									type="number"
+									value={dieValueInput}
+									min={0}
+									step={1}
+									onChange={onDieValue}
+									className={input}
+								/>
+							</label>
+							{valueWarning && impliedWaferValue !== null && (
+								<p className="text-xs text-yellow-300">
+									At {dollars(dieValue)} per die this wafer is worth ~
+									{dollars(impliedWaferValue)} — outside the typical{" "}
+									{dollars(typicalWaferValueMin)}–
+									{dollars(typicalWaferValueMax)} range for a production wafer.
+								</p>
+							)}
 						</div>
 					</div>
 
@@ -432,6 +554,29 @@ const Analyze = () => {
 					))}
 				</div>
 			</section>
+
+			{showSinogramInfo && (
+				<InfoModal
+					title="Radon sinogram"
+					onClose={() => setShowSinogramInfo(false)}>
+					<p>
+						The Radon transform projects the wafer's defect dots onto a line
+						from every direction: each column of the sinogram is one projection
+						angle (0–180°), and each row is a position along that line.
+					</p>
+					<p>
+						Structure that is hard to see in the raw map jumps out here: a
+						straight scratch collapses into a single bright spot at its angle,
+						radial spokes repeat as evenly spaced peaks, and rings spread into
+						broad symmetric bands. Random background dots stay diffuse.
+					</p>
+					<p>
+						Rotating the wafer only shifts the pattern sideways, which makes
+						Radon features rotation-invariant — the same trick the original
+						WM-811K paper used to classify real fab wafer maps.
+					</p>
+				</InfoModal>
+			)}
 		</div>
 	);
 };

@@ -8,12 +8,11 @@ from matplotlib.figure import Figure
 def field_png(field: np.ndarray, cmap: str = "viridis") -> str:
     figure = Figure(figsize=(4, 4))
     axis = figure.subplots()
-    mappable = axis.imshow(field, cmap=cmap)
-    figure.colorbar(mappable, ax=axis, fraction=0.046)
+    axis.imshow(field, cmap=cmap)
     axis.axis(False)
 
     buffer = io.BytesIO()
-    figure.savefig(buffer, format="png", dpi=300, bbox_inches="tight")
+    figure.savefig(buffer, format="png", dpi=300, bbox_inches="tight", pad_inches=0)
     return base64.b64encode(buffer.getvalue()).decode()
 
 

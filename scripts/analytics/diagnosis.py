@@ -27,6 +27,7 @@ out_root = Path("runs/analytics")
 scratch_classes = ("scratch", "edge_scratch")
 min_kinematics_dots = 5
 default_die_mm = 6.0
+default_wafer_radius_mm = 150.0
 
 
 def load_knowledge_base(path: Path) -> dict:
@@ -53,9 +54,14 @@ def diagnose(
     kb: dict,
     die_mm: float = default_die_mm,
     die_value: float = 25.0,
+    wafer_radius_mm: float = default_wafer_radius_mm,
 ) -> dict:
     economics = decompose(
-        dots, [polygon for _, _, polygon in detections], die_mm, die_value
+        dots,
+        [polygon for _, _, polygon in detections],
+        die_mm,
+        die_value,
+        wafer_radius_mm,
     )
 
     entries = []
@@ -81,7 +87,7 @@ def diagnose(
 
         entries.append(entry)
 
-    summary = wafer_summary(dots, die_mm)
+    summary = wafer_summary(dots, die_mm, wafer_radius_mm)
     failed_fraction = 1 - summary["yield"]
     summary["d0_per_mm2"] = (
         estimate_defect_density(failed_fraction, die_mm**2)
@@ -128,6 +134,12 @@ if __name__ == "__main__":
         help="Dollar value per die (default: 25.0).",
     )
     parser.add_argument(
+        "--wafer-radius-mm",
+        type=float,
+        default=default_wafer_radius_mm,
+        help="Wafer radius in mm (default: 150.0).",
+    )
+    parser.add_argument(
         "--out-dir",
         type=str,
         default=str(out_root),
@@ -162,7 +174,12 @@ if __name__ == "__main__":
         ]
 
     report = diagnose(
-        dots, detections, load_knowledge_base(kb_path), args.die_mm, args.die_value
+        dots,
+        detections,
+        load_knowledge_base(kb_path),
+        args.die_mm,
+        args.die_value,
+        args.wafer_radius_mm,
     )
 
     os.makedirs(args.out_dir, exist_ok=True)

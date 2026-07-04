@@ -1,12 +1,15 @@
 import numpy as np
 
-wafer_radius_mm = 150.0
+default_wafer_radius_mm = 150.0
 edge_exclusion_mm = 3.0
 default_die_mm = 6.0
 radial_bins = 10
 
 
-def die_centers(die_mm: float = default_die_mm) -> np.ndarray:
+def die_centers(
+    die_mm: float = default_die_mm,
+    wafer_radius_mm: float = default_wafer_radius_mm,
+) -> np.ndarray:
     die = die_mm / wafer_radius_mm
     usable = (wafer_radius_mm - edge_exclusion_mm) / wafer_radius_mm
 
@@ -22,8 +25,12 @@ def die_centers(die_mm: float = default_die_mm) -> np.ndarray:
     return np.stack([xx[keep], yy[keep]], axis=1)
 
 
-def failed_dies(dots: np.ndarray, die_mm: float = default_die_mm) -> np.ndarray:
-    centers = die_centers(die_mm)
+def failed_dies(
+    dots: np.ndarray,
+    die_mm: float = default_die_mm,
+    wafer_radius_mm: float = default_wafer_radius_mm,
+) -> np.ndarray:
+    centers = die_centers(die_mm, wafer_radius_mm)
     if len(dots) == 0:
         return np.zeros(len(centers), dtype=bool)
 
@@ -36,8 +43,12 @@ def failed_dies(dots: np.ndarray, die_mm: float = default_die_mm) -> np.ndarray:
     return (inside_x & inside_y).any(axis=1)
 
 
-def wafer_summary(dots: np.ndarray, die_mm: float = default_die_mm) -> dict:
-    failed = failed_dies(dots, die_mm)
+def wafer_summary(
+    dots: np.ndarray,
+    die_mm: float = default_die_mm,
+    wafer_radius_mm: float = default_wafer_radius_mm,
+) -> dict:
+    failed = failed_dies(dots, die_mm, wafer_radius_mm)
     gross = len(failed)
     return {
         "gross_dies": gross,
@@ -47,10 +58,13 @@ def wafer_summary(dots: np.ndarray, die_mm: float = default_die_mm) -> dict:
 
 
 def radial_yield(
-    dots: np.ndarray, die_mm: float = default_die_mm, bins: int = radial_bins
+    dots: np.ndarray,
+    die_mm: float = default_die_mm,
+    bins: int = radial_bins,
+    wafer_radius_mm: float = default_wafer_radius_mm,
 ) -> list[float]:
-    centers = die_centers(die_mm)
-    failed = failed_dies(dots, die_mm)
+    centers = die_centers(die_mm, wafer_radius_mm)
+    failed = failed_dies(dots, die_mm, wafer_radius_mm)
     radius = np.hypot(centers[:, 0], centers[:, 1])
 
     edges = np.linspace(0.0, radius.max() + 1e-9, bins + 1)
@@ -62,9 +76,13 @@ def radial_yield(
     return rates
 
 
-def zone_yields(dots: np.ndarray, die_mm: float = default_die_mm) -> dict:
-    centers = die_centers(die_mm)
-    failed = failed_dies(dots, die_mm)
+def zone_yields(
+    dots: np.ndarray,
+    die_mm: float = default_die_mm,
+    wafer_radius_mm: float = default_wafer_radius_mm,
+) -> dict:
+    centers = die_centers(die_mm, wafer_radius_mm)
+    failed = failed_dies(dots, die_mm, wafer_radius_mm)
     radius = np.hypot(centers[:, 0], centers[:, 1])
     limit = radius.max()
 

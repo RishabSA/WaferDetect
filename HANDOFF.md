@@ -274,13 +274,14 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 
 `scripts/analytics/diegrid.py` — Stage 5 virtual die grid:
 
-- module globals: `wafer_radius_mm = 150.0`, `edge_exclusion_mm = 3.0`,
-  `default_die_mm = 6.0`, `radial_bins = 10`
-- `die_centers(die_mm=6.0) -> np.ndarray`
-- `failed_dies(dots, die_mm=6.0) -> np.ndarray`
-- `wafer_summary(dots, die_mm=6.0) -> dict`
-- `radial_yield(dots, die_mm=6.0, bins=10) -> list[float]`
-- `zone_yields(dots, die_mm=6.0) -> dict`
+- module globals: `default_wafer_radius_mm = 150.0`, `edge_exclusion_mm = 3.0`,
+  `default_die_mm = 6.0`, `radial_bins = 10` (2026-07-04: wafer radius became a
+  per-function parameter so the dashboard can vary wafer size; the global was renamed)
+- `die_centers(die_mm=6.0, wafer_radius_mm=150.0) -> np.ndarray`
+- `failed_dies(dots, die_mm=6.0, wafer_radius_mm=150.0) -> np.ndarray`
+- `wafer_summary(dots, die_mm=6.0, wafer_radius_mm=150.0) -> dict`
+- `radial_yield(dots, die_mm=6.0, bins=10, wafer_radius_mm=150.0) -> list[float]`
+- `zone_yields(dots, die_mm=6.0, wafer_radius_mm=150.0) -> dict`
 
 `scripts/analytics/yieldmodels.py`:
 
@@ -300,11 +301,12 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
   default on `decompose` and on the diagnosis CLI (`--die-value`); a 2026-07-02 cleanup
   removed the former `die_value_dollars` global (importing it broke the suite once — fixed)
 - `points_in_polygon(points, polygon_image) -> np.ndarray`
-- `decompose(dots, polygons_image, die_mm=6.0, die_value=25.0) -> dict`
+- `decompose(dots, polygons_image, die_mm=6.0, die_value=25.0, wafer_radius_mm=150.0) -> dict`
 - `pareto(items) -> list[tuple[str, float]]`
 
 `scripts/analytics/kinematics.py`:
 
+- `raster_size = 128` (raised from 64 on 2026-07-04)
 - `radon_orientation(points) -> float`
 - `line_deviation(points) -> float`
 - `circle_fit(points) -> tuple[float, float, float]`
@@ -330,7 +332,8 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 
 `scripts/api/plots.py`:
 
-- `field_png(field, cmap="viridis") -> str` — base64 PNG for server-rendered heatmaps.
+- `field_png(field, cmap="viridis") -> str` — base64 PNG for server-rendered heatmaps
+  (colorbar removed 2026-07-04 by user decision; edge-to-edge render).
 - `image_png(image) -> str` — base64 PNG for generated wafer maps.
 
 `scripts/api/main.py`:
@@ -350,7 +353,14 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 - `wafer_dots_and_detections(stem) -> tuple` (moved here when `routers/diagnose.py` was
   deleted 2026-07-04; the ground-truth `GET /api/diagnose/{stem}` endpoint was removed —
   `/api/analyze` covers full reports via model predictions)
-- `GET /api/yield/wafer/{stem}?die_mm=6&die_value=25`
+- `GET /api/yield/wafer/{stem}?die_mm=6&die_value=25&wafer_radius_mm=150`
+- `POST /api/analyze` and `diagnose()` also take `wafer_radius_mm=150.0`; the Analyze view
+  exposes all three what-if knobs (wafer-size preset dropdown + custom, die-size slider,
+  die-value input with an implied-wafer-value warning), debounced 500 ms
+- `analyze.py` caches image-derived artifacts (dots, detections, image/sinogram PNGs) in a
+  module-level LRU (`analysis_cache`, cap 16) keyed by stem or upload SHA-256 — what-if
+  parameter changes skip YOLO entirely and recompute only diagnose/radial/zones
+  (measured live 2026-07-04: ~0.92 s cold → ~0.03 s on a hit)
 - `GET /api/yield/pareto?split=test&limit=0&die_value=25`
 
 `scripts/api/routers/physics.py`:
@@ -377,7 +387,8 @@ Other repo items: root-level `experiment.ipynb`,
 - `src/format.ts` — `dollars`, `percent`, `png`. `src/ui.ts` — shared Tailwind class
   constants (card/select/input/buttons/chip). `src/useCountUp.ts` — rAF count-up hook.
 - `src/App.tsx` — dark sidebar shell, routes (`/` Analyze, `/explorer`, `/yield`,
-  `/physics`), disabled Line Monitor Stage 6 badge.
+  `/physics`); the disabled Line Monitor Stage 6 badge was removed 2026-07-04 (re-add a
+  nav entry when Stage 6 ships).
 - Shared components: `components/WaferCanvas.tsx` (circular canvas, polygon overlays,
   dot markers, scan animation), `MetricTile.tsx`, `FieldHeatmap.tsx`, `DiagnosisCard.tsx`,
   `ParamField.tsx`.
@@ -557,5 +568,6 @@ Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, `tqdm`.
 ## 9. Roadmap after Stage 8
 
 Stage 6 (deferred, still owed): stream simulator + Shewhart/EWMA/CUSUM, its `/api/monitor/*`
-router, and then the dashboard's Line Monitor view (replacing the disabled nav entry).
+router, and then the dashboard's Line Monitor view (adding a new nav entry — the old
+disabled placeholder was removed 2026-07-04).
 Stage 9: polish/release. Then F1/F2.

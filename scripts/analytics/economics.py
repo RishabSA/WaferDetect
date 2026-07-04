@@ -6,6 +6,7 @@ from scripts.datagen.generator import wafer_frac
 from scripts.datagen.labels import image_to_wafer
 
 default_die_mm = 6.0
+default_wafer_radius_mm = 150.0
 
 
 def points_in_polygon(points: np.ndarray, polygon_image: list) -> np.ndarray:
@@ -20,9 +21,10 @@ def decompose(
     polygons_image: list,
     die_mm: float = default_die_mm,
     die_value: float = 25.0,
+    wafer_radius_mm: float = default_wafer_radius_mm,
 ) -> dict:
-    centers = die_centers(die_mm)
-    failed = failed_dies(dots, die_mm)
+    centers = die_centers(die_mm, wafer_radius_mm)
+    failed = failed_dies(dots, die_mm, wafer_radius_mm)
 
     region_masks = [points_in_polygon(centers, polygon) for polygon in polygons_image]
     inside_any = np.zeros(len(centers), dtype=bool)

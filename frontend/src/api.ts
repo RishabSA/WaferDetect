@@ -77,6 +77,12 @@ export interface AnalyzeDetection extends DiagnosisDetection {
 	polygon: [number, number][];
 }
 
+export interface AnalyzeParams {
+	die_mm: number;
+	die_value: number;
+	wafer_radius_mm: number;
+}
+
 export interface AnalyzeResponse {
 	stem: string | null;
 	image: string;
@@ -132,6 +138,13 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 	return response.json() as Promise<T>;
 };
 
+const analyzeQuery = (params: AnalyzeParams): string =>
+	new URLSearchParams({
+		die_mm: String(params.die_mm),
+		die_value: String(params.die_value),
+		wafer_radius_mm: String(params.wafer_radius_mm),
+	}).toString();
+
 const postJson = <T>(path: string, body: unknown): Promise<T> =>
 	request<T>(path, {
 		method: "POST",
@@ -154,14 +167,18 @@ export const api = {
 	},
 	waferDetail: (stem: string) =>
 		request<WaferDetail>(`/api/wafers/${encodeURIComponent(stem)}`),
-	analyze: (stem: string) =>
-		request<AnalyzeResponse>(`/api/analyze?stem=${encodeURIComponent(stem)}`, {
-			method: "POST",
-		}),
-	analyzeFile: (file: File) => {
+	analyze: (stem: string, params: AnalyzeParams) =>
+		request<AnalyzeResponse>(
+			`/api/analyze?stem=${encodeURIComponent(stem)}&${analyzeQuery(params)}`,
+			{ method: "POST" },
+		),
+	analyzeFile: (file: File, params: AnalyzeParams) => {
 		const body = new FormData();
 		body.append("file", file);
-		return request<AnalyzeResponse>("/api/analyze", { method: "POST", body });
+		return request<AnalyzeResponse>(`/api/analyze?${analyzeQuery(params)}`, {
+			method: "POST",
+			body,
+		});
 	},
 	yieldWafer: (stem: string) =>
 		request<YieldPanel>(`/api/yield/wafer/${encodeURIComponent(stem)}`),
