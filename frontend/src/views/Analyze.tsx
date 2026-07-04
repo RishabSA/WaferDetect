@@ -32,7 +32,7 @@ import {
 import useCountUp from "../useCountUp";
 import useDebounced from "../useDebounced";
 
-const demoStem = "0101_scratch";
+const demoStem = "0487_combo_random+edge_loc+comet";
 const galleryLimit = 14;
 const waferPresets = [50, 75, 100, 150, 225];
 const dieMmMin = 3;

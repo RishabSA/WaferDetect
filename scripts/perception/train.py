@@ -1,6 +1,5 @@
 import argparse
 from pathlib import Path
-
 from ultralytics import YOLO
 
 if __name__ == "__main__":
@@ -19,8 +18,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--name",
         type=str,
-        default="stage1_baseline",
-        help="Name to use for YOLO training (default: stage1_baseline).",
+        default="yolo26x_detector",
+        help="Name to use for YOLO training (default: yolo26x_detector).",
     )
     parser.add_argument(
         "--epochs",

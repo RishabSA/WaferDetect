@@ -30,7 +30,7 @@ FastAPI + React dashboard. Framing is
 engineer actually asks.
 
 ```
-Layer 0  DATA ENGINE      heuristic generator + auto polygon labels (+ physics modes later)
+Layer 0  DATA LIBRARY     intensity fields + rendering (training-data generation dropped 2026-07-04)
 Layer 1  PERCEPTION       YOLO26-seg instance segmentation (baselines: SVM)
 Layer 3  ANALYTICS        geometry, kinematics, knowledge base, yield $-economics
 Layer 4  MONITORING       stream simulator -> EWMA/CUSUM -> alarms
@@ -49,14 +49,13 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   `datagen/fields.py`, `datagen/labels.py`, `datagen/generator.py`, `datagen/review.py`,
   `datagen/layout.py`, `baselines/classical.py`, and tests. Local smoke verified generator/review/layout CLIs. Classical
   baseline was run locally: singles accuracy 0.8194, singles macro-F1 0.7911, combo exact-match
-  0 by construction. Remaining Stage 2 work is human/A100 gated: pilot review approval, 10k
-  generation, YOLO scaling study, and exit-gate comparison.
+  0 by construction. (2026-07-04: the pilot/10k/scaling-study direction was dropped and its
+  pipeline deleted — see §8.)
 - **Stage 3 (physics suite): code COMPLETE, 108/108 tests passing.** Implemented
   `scripts/datagen/physics/{thermal,spincoat,cmp,shotgrid,builders}.py`, generator
-  `physics_frac` integration, and tests. Local smoke verified physics-mode generation and
-  review-sheet rendering in `/private/tmp`. Remaining Stage 3 work is the human visual gate:
-  generate the 300-sample physics pilot in `data/generated/physics_pilot`, review sheets for
-  the six physics-covered classes, and choose the production `--physics-frac`.
+  `physics_frac` integration, and tests. (2026-07-04: `builders.py` and the `physics_frac`
+  generation integration were deleted with the generated-data direction; the four simulators
+  remain and power the dashboard's Physics Lab.)
 - **Stage 5 (analytics engine): code COMPLETE, 149/149 tests passing.** Implemented
   `scripts/analytics/{diegrid,yieldmodels,economics,kinematics,fieldanalysis,diagnosis}.py`,
   `knowledge_base.yaml`, `image_to_wafer`, and tests. Generated sample ground-truth reports:
@@ -74,8 +73,10 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
 - **Stage 1 baseline TRAINED (2026-07-02, A100):** test-split mask mAP50 **0.842** (≥ 0.80
   target met), box mAP50 0.896; combo subset mask mAP50 0.670 (17-point gap — misses the
   ≤10-point criterion; swirl masks are the main failure at 0.151, plus random-in-combo and
-  donut masks); edge_scratch_tiny subset 0.995. **0.842 is the frozen Gate B bar.** Weights in
-  `runs/train/stage1_baseline/weights/best.pt` (user's `waferdetect_runs/`). Known data wart:
+  donut masks); edge_scratch_tiny subset 0.995. **0.842 is the project's headline model
+  result** (formerly the Gate B bar; the generated-data comparison it anchored was dropped
+  2026-07-04). Weights in
+  `runs/train/yolo26x_detector/weights/best.pt` (user's `waferdetect_runs/`). Known data wart:
   ultralytics deduped duplicate label lines in `0170_swirl` (3) and one combo file (1).
 - **Stage 8 (dashboard frontend): code COMPLETE + UI REDESIGN (2026-07-02).** Frontend tests
   were removed entirely on 2026-07-04 by user decision (vitest/jsdom/testing-library
@@ -83,7 +84,8 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   React 19 + TypeScript + Vite + Tailwind v4 in
   `frontend/`, redesigned dark-native ("fab control room": cyan/violet on near-black, glassy
   cards, scan-line loading animation, count-up hero numbers). The home view is now **Analyze**
-  (`views/Analyze.tsx`): boots on demo wafer `0101_scratch`, auto-fetches on wafer pick or
+  (`views/Analyze.tsx`): boots on demo wafer `0487_combo_random+edge_loc+comet`
+  (changed from `0101_scratch` 2026-07-04), auto-fetches on wafer pick or
   image upload (no button), two canvas tabs (detections / defect dots) + always-visible
   Radon sinogram side panel,
   headline loss+yield front and center, inline expandable report — the separate Detection
@@ -163,7 +165,7 @@ Run everything from repo root (`uv run python -m scripts....` — `-m` puts the 
 
 `scripts/perception/train.py` — pure CLI script (no importable functions):
 
-- args: `--data data/yolo/data.yaml`, `--name stage1_baseline`, `--epochs 200`,
+- args: `--data data/yolo/data.yaml`, `--name yolo26x_detector`, `--epochs 200`,
   `--device cpu` (pass `mps` locally, `0` on CUDA; **"auto" is NOT a valid ultralytics
   device**), `--model-name yolo26x-seg.pt`, `--project`, `--resume`, `--seed 42`.
 - fixed training policy dict: `imgsz=640, patience=50, mosaic=0.0, degrees=180.0, flipud=0.5,
@@ -186,7 +188,7 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 - `metrics_to_dict(metrics, class_names) -> dict` — per-class AP arrays are dense; decode
   positions through `metrics.box.ap_class_index` (never assume position = class ID).
 - `render_report(results) -> str` — markdown with per-class table.
-- CLI: `--model-path` (default `runs/train/stage1_baseline/weights/best.pt`), `--name`,
+- CLI: `--model-path` (default `runs/train/yolo26x_detector/weights/best.pt`), `--name`,
   `--data`. Runs full test split (`split="test"`, plots → confusion matrix), then combo and
   edge_scratch_tiny subsets; writes `runs/eval/<name>/{metrics.json,report.md}`.
   Subset images intentionally always come from `data/yolo/images/test` (the raw test split) —
@@ -210,23 +212,13 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 - `yolo_line(class_id, polygon) -> str`
 - `mask_iou(a, b) -> float`
 
-`scripts/datagen/generator.py` — synthetic wafer generator:
+`scripts/datagen/generator.py` — rendering library (2026-07-04: the user dropped the
+generated-training-data direction; the dataset-production surface — `generate_sample`,
+`choose_categories`, `sample_name`, `background_dots`, the CLI — plus `review.py`,
+`layout.py`, and `physics/builders.py` were all deleted, along with `data/generated/*`. What remains is the library other layers use):
 
-- module globals: `image_size = 640`, `grid_size = 256`, `wafer_frac = 0.97`,
-  combo weights/IoU retry controls, dot-count ranges
-- `sample_dots`, `background_dots`, `quantize_dots`, `render`, `choose_categories`,
-  `generate_sample`, `sample_name`
-- CLI writes `images/`, `labels/`, and `manifest.json`
-
-`scripts/datagen/review.py`:
-
-- `write_review_sheets(generated_dir: Path, per_category: int = 5) -> Path`
-
-`scripts/datagen/layout.py`:
-
-- `raw_test_images = Path("data/yolo/images/test")`
-- `build_layout(generated_dir, out_dir, val_frac, seed, limit=0) -> Path`; train/val comes from
-  generated data, `test:` in `data.yaml` points at the frozen raw YOLO test split
+- module globals: `image_size = 640`, `grid_size = 256`, `wafer_frac = 0.97`
+- `sample_dots`, `quantize_dots`, `render` (Physics Lab); `wafer_frac` (analytics + analyze)
 
 `scripts/baselines/classical.py`:
 
@@ -261,16 +253,6 @@ fliplr=0.5, scale=0.1, hsv_h/s/v=0.0`. `--project` defaults to `runs/train` loca
 
 - `intra_field_mask(grid, cell, offset, spot, spot_radius) -> np.ndarray`
 - `shot_grid_physics_field(grid, rng) -> np.ndarray`
-
-`scripts/datagen/physics/builders.py`:
-
-- `physics_field_builders` covers exactly `slip_lines`, `center`, `donut`, `edge_ring`,
-  `gradient`, `shot_grid`; center/donut/edge_ring randomly choose spin-coat vs. CMP.
-
-`scripts/datagen/generator.py` Stage 3 addition:
-
-- `generate_sample(..., physics_frac: float = 0.0)` and CLI `--physics-frac`; default `0.0`
-  preserves Stage 2 behavior.
 
 `scripts/analytics/diegrid.py` — Stage 5 virtual die grid:
 
@@ -489,8 +471,6 @@ The user rewrote generated code once to enforce this and does not want to again.
 - Do not launch long training runs unprompted — heavy compute (full trainings, sweeps)
   belongs on the user's Colab A100;
   local Mac (MPS) is for development, unit tests, and short smoke runs only.
-- Human gates are real stops: Stage 2's pilot review sheets must be approved by the user
-  before the 10k generation; exit-gate reviews happen with the user.
 - Work stage-by-stage from the plan; the plan's task order is deliberate. Report deviations
   explicitly rather than improvising.
 
@@ -501,12 +481,12 @@ The user rewrote generated code once to enforce this and does not want to again.
 Code tasks are complete. Remaining work is manual browser QA:
 
 1. Start the backend:
-   `uv run python -m scripts.api.main --model-path waferdetect_runs/train/stage1_baseline/weights/best.pt`
+   `uv run python -m scripts.api.main --model-path waferdetect_runs/train/yolo26x_detector/weights/best.pt`
 2. Start the frontend:
    `cd frontend && npm run dev`
-3. Walk the Analyze home view (boot on demo wafer, gallery pick, image upload, all three
-   canvas views, expandable report), Explorer filters, Yield Analytics Pareto/wafer panel,
-   and all four Physics Lab tabs.
+3. Walk the Analyze home view (boot on demo wafer, gallery pick, image upload, both canvas
+   tabs + sinogram panel, what-if knobs, expandable report), Explorer filters, Yield
+   Analytics Pareto/wafer panel, and all four Physics Lab tabs.
 4. Check a narrow viewport (the UI is dark-native; there is no light theme).
 5. STOP for user review of response shapes and dashboard ergonomics before Stage 9.
 
@@ -514,9 +494,9 @@ Code tasks are complete. Remaining work is manual browser QA:
 
 Code tasks are complete. Remaining manual gate requires the real Stage 1 checkpoint locally:
 
-1. Put the trained checkpoint at `runs/train/stage1_baseline/weights/best.pt`.
+1. Put the trained checkpoint at `runs/train/yolo26x_detector/weights/best.pt`.
 2. Start the server:
-   `uv run python -m scripts.api.main --model-path runs/train/stage1_baseline/weights/best.pt`
+   `uv run python -m scripts.api.main --model-path runs/train/yolo26x_detector/weights/best.pt`
 3. Review `http://127.0.0.1:8000/docs`.
 4. Exercise `/api/analyze?stem=0101_scratch`,
    `/api/yield/pareto?split=test&limit=20`, and `/api/physics/thermal`.
@@ -536,34 +516,17 @@ Code tasks are complete. Remaining execution is user review/tuning:
 
 No new dependencies were added for Stage 5.
 
-### Stage 3 visual gate
+### Dropped direction (2026-07-04): training on generated data
 
-Code tasks are complete. Remaining execution is gated:
-
-1. Generate the physics pilot:
-   `uv run python -m scripts.datagen.generator --out-dir data/generated/physics_pilot --count 300 --combo-frac 0.0 --physics-frac 1.0 --seed 42`
-2. Render review sheets:
-   `uv run python -m scripts.datagen.review --generated-dir data/generated/physics_pilot`
-3. STOP for user approval of `data/generated/physics_pilot/review/*.png`, focused on
-   `slip_lines`, `center`, `donut`, `edge_ring`, `gradient`, and `shot_grid`.
-4. With the user, choose the production `--physics-frac` for future generated datasets
-   (recommendation remains 0.5).
-
-Key contracts: every physics builder has the Stage 2 field signature
-`(grid, rng) -> np.ndarray` (non-negative, zero off-disk), so labeling/rendering/review work
-unchanged. Physics tests are structural, never absolute-calibrated.
-
-### Still-pending execution (Stages 1–2, user/A100 gated)
-
-1. Stage 2 Gate A: generate the heuristic pilot
-   (`uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000 --seed 42`),
-   render review sheets, user approves before 10k.
-2. One Colab A100 session: Stage 1 baseline training + eval, then 10k generation, scaling
-   study {500,1k,2k,5k,10k}.
-3. Exit-gate review: Gate B (500-generated model ≥ Stage 1 baseline mask mAP50), Gate C
-   (scaling curve), Gate D (detector vs. SVM 0.8194-singles/0-combo).
-
-Stage 2 deps added: `pillow`, `scikit-learn`, `torchvision`, `tqdm`.
+The user dropped the generated-training-data direction entirely — no 10k generation, no
+scaling study, no pilot gates, no physics-informed generation modes, no Gates A–D. Deleted:
+`datagen/{layout,review}.py`, `datagen/physics/builders.py`, the generator's dataset CLI and
+`generate_sample`/`choose_categories`/`sample_name`/`background_dots`, their tests, and
+`data/generated/*`. The datagen package survives as a
+library (fields, labels, generator core, four physics simulators) serving the Physics Lab,
+analytics, and the classical baseline. The 0.842 mask mAP50 stays the project's headline
+model result — it just no longer functions as a comparison bar for generated-data models.
+`scripts/wm811k/` and `colab/` were also removed by the user in the same sweep.
 
 ## 9. Roadmap after Stage 8
 

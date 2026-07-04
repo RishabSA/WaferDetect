@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { FaTimes } from "react-icons/fa";
 
 interface InfoModalProps {
@@ -8,10 +9,12 @@ interface InfoModalProps {
 }
 
 const InfoModal = ({ title, onClose, children }: InfoModalProps) => {
-	return (
+	// Portal to body: transformed ancestors (e.g. animate-fade-up) would otherwise
+	// re-anchor position:fixed to themselves instead of the viewport
+	return createPortal(
 		<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 			<div className="absolute inset-0 bg-black/60" onClick={onClose} />
-			<div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-neutral-950 p-5 shadow-xl">
+			<div className="relative max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-neutral-950 p-5 shadow-xl">
 				<div className="mb-3 flex items-center justify-between">
 					<h3 className="text-sm font-semibold text-white">{title}</h3>
 					<button
@@ -25,7 +28,8 @@ const InfoModal = ({ title, onClose, children }: InfoModalProps) => {
 					{children}
 				</div>
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 };
 

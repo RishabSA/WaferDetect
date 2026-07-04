@@ -15,7 +15,7 @@ from scripts.api.routers import (
     yields,
 )
 
-default_model_path = Path("waferdetect_runs/train/stage1_baseline/weights/best.pt")
+default_model_path = Path("waferdetect_runs/train/yolo26x_detector/weights/best.pt")
 cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         "--model-path",
         type=str,
         default=str(default_model_path),
-        help="Trained *.pt weights to serve (default: waferdetect_runs/train/stage1_baseline/weights/best.pt).",
+        help="Trained *.pt weights to serve (default: waferdetect_runs/train/yolo26x_detector/weights/best.pt).",
     )
     parser.add_argument(
         "--host",

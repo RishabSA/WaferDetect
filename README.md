@@ -48,18 +48,13 @@ and a Radon sinogram of the defect dots — everything the dashboard shows.
   **mask mAP50 0.842**, box mAP50 0.896, ~4 ms/wafer on an A100. Classical baseline for
   scale: zone-density + Radon + SVM reaches 0.819 accuracy on single-defect wafers and 0 on
   multi-defect combos — the gap segmentation exists to close.
-- **Data engine** — every defect class is a parametric 2D intensity field over the wafer
-  disk; the same field samples the failing-die dots _and_ derives the polygon label, so
-  pixels and labels cannot drift apart. Scales to 10k+ images with visual QA sheets.
 - **Physics suite** — four first-principles simulators that _cause_ patterns instead of
   drawing them: a finite-difference thermal solver whose stress field places slip lines,
   Emslie–Bonner–Peck spin-coating, Preston-equation CMP, and a stepper shot-grid model —
-  all pluggable into the generator and interactive in the dashboard's Physics Lab.
+  all interactive in the dashboard's Physics Lab.
 - **Analytics** — virtual die grid, Poisson and negative-binomial (Stapper) yield models,
   excess-over-background dollar attribution per defect, scratch kinematics (line vs. arc,
   entry bearing), and a 21-class root-cause knowledge base.
-- **Real-data validation** — a WM-811K pipeline (conversion, rendering, zero-shot scoring,
-  few-shot fine-tuning) for testing synthetic-to-real transfer on 811k real fab wafers.
 - **Dashboard** — FastAPI backend + React 19/TypeScript/Tailwind frontend: an Analyze home
   view (upload or browse, detection overlays, defect-dot and sinogram views, inline
   diagnosis report), Wafer Explorer, Yield Analytics with a fleet-wide Pareto of loss by
@@ -92,9 +87,6 @@ uv run python -m scripts.perception.train --device mps
 # evaluate on the frozen test split + combo/tiny subsets
 uv run python -m scripts.perception.evaluate
 
-# generate synthetic wafers with auto-derived polygon labels
-uv run python -m scripts.datagen.generator --out-dir data/generated/pilot --count 1000
-
 # diagnose a single wafer image from the command line
 uv run python -m scripts.analytics.diagnosis --image data/raw/images/0101_scratch.jpg \
   --labels data/raw/labels/0101_scratch.txt
@@ -107,7 +99,7 @@ Run the dashboard (two terminals):
 
 ```bash
 # 1 — API on 127.0.0.1:8000
-uv run python -m scripts.api.main --model-path waferdetect_runs/train/stage1_baseline/weights/best.pt
+uv run python -m scripts.api.main --model-path waferdetect_runs/train/yolo26x_detector/weights/best.pt
 
 # 2 — frontend on http://localhost:5173
 cd frontend && npm install && npm run dev
@@ -123,14 +115,12 @@ data/raw/                  source dataset: images, labels, overlays, classes.txt
 data/splits/               frozen train/val/test manifests (seed 42)
 scripts/
   perception/              label parsing, split/layout builder, YOLO26-seg train + evaluate
-  datagen/                 intensity fields, auto-labeling, generator, QA sheets, layouts
+  datagen/                 intensity-field, auto-labeling, and wafer-rendering library
     physics/               thermal, spin-coat, CMP, and shot-grid simulators
   baselines/               zone-density + Radon + SVM and ResNet whole-image baselines
-  wm811k/                  WM-811K conversion, rendering, zero-shot and few-shot pipelines
   analytics/               die grid, yield models, $-economics, kinematics, knowledge base
   api/                     FastAPI app: analyze, wafers, yield, physics routers
 frontend/                  React 19 + TypeScript + Vite + Tailwind dashboard
-colab/                     GPU runbooks for training and the WM-811K studies
 docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite
 ```
@@ -139,7 +129,5 @@ tests/                     pytest suite
 
 - SPC excursion monitoring (stream simulator → EWMA/CUSUM control charts → the dashboard's
   Line Monitor view).
-- The 10k-image generation run and data-scaling study against the frozen 0.842 baseline.
-- WM-811K zero-shot and few-shot transfer studies on real fab data.
 - Spatial statistics (complete-spatial-randomness tests, wafer similarity search, stacked
   lot maps) and tool-commonality analysis.

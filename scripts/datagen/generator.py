@@ -1,40 +1,9 @@
-import argparse
-import json
-import os
-from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
-from tqdm import tqdm
-
-from scripts.datagen.fields import category_class, field_builders
-from scripts.datagen.labels import (
-    field_mask,
-    field_to_polygon,
-    mask_iou,
-    wafer_to_image,
-    yolo_line,
-)
-from scripts.datagen.physics.builders import physics_field_builders
-from scripts.perception.annotations import load_class_names
-
-classes_file = Path("data/raw/classes.txt")
 
 image_size = 640
 grid_size = 256
 wafer_frac = 0.97
-
-combo_size_weights = (0.75, 0.20, 0.05)
-combo_iou_limit = 0.7
-max_overlap_retries = 10
-
-pattern_dot_counts = {
-    "near_full": (900, 1600),
-    "random": (250, 500),
-    "gradient": (350, 700),
-    "half_wafer": (250, 500),
-}
-default_dot_count = (120, 280)
-background_dot_count = (30, 90)
 
 
 def sample_dots(field: np.ndarray, count: int, rng: np.random.Generator) -> np.ndarray:
@@ -55,15 +24,6 @@ def sample_dots(field: np.ndarray, count: int, rng: np.random.Generator) -> np.n
     dots[outside] = dots[outside] / radius[outside, None] * 0.99
 
     return dots
-
-
-def background_dots(count: int, rng: np.random.Generator) -> np.ndarray:
-    # sqrt makes radial density uniform in area, not clustered at the center, producing uniform density per unit of area
-    radius = np.sqrt(rng.uniform(0, 1, count)) * 0.98
-    theta = rng.uniform(0, 2 * np.pi, count)
-
-    # Noise floor every real wafer has, which are random isolated failures unrelated to the pattern
-    return np.stack([radius * np.cos(theta), radius * np.sin(theta)], axis=1)
 
 
 def quantize_dots(dots: np.ndarray, die_grid: int) -> np.ndarray:
@@ -91,149 +51,3 @@ def render(dots: np.ndarray, rng: np.random.Generator) -> Image.Image:
         draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=0)
 
     return image
-
-
-def choose_categories(rng: np.random.Generator, combo_frac: float) -> list[str]:
-    categories = sorted(field_builders)
-    if rng.random() >= combo_frac:
-        return [str(rng.choice(categories))]
-
-    size = int(rng.choice((2, 3, 4), p=combo_size_weights))
-    return [str(category) for category in rng.choice(categories, size=size)]
-
-
-def sample_name(index: int, categories: list[str]) -> str:
-    if len(categories) == 1:
-        return f"{index:04d}_{categories[0]}"
-
-    return f"{index:04d}_combo_" + "+".join(
-        category_class(category) for category in categories
-    )
-
-
-def generate_sample(
-    categories: list[str],
-    class_names: list[str],
-    rng: np.random.Generator,
-    die_grid: int = 0,
-    physics_frac: float = 0.0,
-) -> tuple[Image.Image, list[str]]:
-    dots = []
-    lines = []
-    masks = []
-
-    for category in categories:
-        builder = field_builders[category]
-        if (
-            physics_frac > 0.0
-            and category in physics_field_builders
-            and rng.random() < physics_frac
-        ):
-            builder = physics_field_builders[category]
-
-        # Each pattern in a combo gets re-rolled up to max_overlap_retries times until its footprint overlaps every previously placed pattern by IoU <= combo_iou_limit
-        # Two patterns stacked on top of each other would be unrealistic
-        for i in range(max_overlap_retries):
-            field = builder(grid_size, rng)
-            mask = field_mask(field)
-            if all(mask_iou(mask, other) <= combo_iou_limit for other in masks):
-                break
-
-        masks.append(mask)
-
-        low, high = pattern_dot_counts.get(category, default_dot_count)
-        dots.append(sample_dots(field, int(rng.integers(low, high)), rng))
-
-        polygon = wafer_to_image(field_to_polygon(field), wafer_frac)
-        class_id = class_names.index(category_class(category))
-        lines.append(yolo_line(class_id, polygon))
-
-    dots.append(background_dots(int(rng.integers(*background_dot_count)), rng))
-    all_dots = np.concatenate(dots)
-
-    if die_grid:
-        all_dots = quantize_dots(all_dots, die_grid)
-
-    return render(all_dots, rng), lines
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--out-dir",
-        type=str,
-        required=True,
-        help="Output dataset directory, e.g. data/generated/v1 (required).",
-    )
-    parser.add_argument(
-        "--count",
-        type=int,
-        default=10000,
-        help="Number of wafer maps to generate (default: 10000).",
-    )
-    parser.add_argument(
-        "--combo-frac",
-        type=float,
-        default=0.17,
-        help="Fraction of samples with multiple patterns, like the raw set (default: 0.17).",
-    )
-    parser.add_argument(
-        "--die-grid-frac",
-        type=float,
-        default=0.0,
-        help="Fraction of samples rendered with die-grid quantization (default: 0.0).",
-    )
-    parser.add_argument(
-        "--physics-frac",
-        type=float,
-        default=0.0,
-        help="Probability that a physics-covered class uses its physics builder (default: 0.0).",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Seed to use for reproducibility (default: 42).",
-    )
-
-    args = parser.parse_args()
-
-    out_dir = Path(args.out_dir)
-    images_dir = out_dir / "images"
-    labels_dir = out_dir / "labels"
-    os.makedirs(images_dir, exist_ok=True)
-    os.makedirs(labels_dir, exist_ok=True)
-
-    class_names = load_class_names(classes_file)
-    rng = np.random.default_rng(args.seed)
-    category_counts = {}
-
-    for index in tqdm(range(1, args.count + 1), desc="generating wafers"):
-        categories = choose_categories(rng, args.combo_frac)
-        die_grid = int(rng.integers(26, 61)) if rng.random() < args.die_grid_frac else 0
-
-        image, lines = generate_sample(
-            categories, class_names, rng, die_grid, args.physics_frac
-        )
-        name = sample_name(index, categories)
-        image.save(images_dir / f"{name}.jpg")
-        (labels_dir / f"{name}.txt").write_text("\n".join(lines) + "\n")
-
-        key = "combo" if len(categories) > 1 else categories[0]
-        category_counts[key] = category_counts.get(key, 0) + 1
-
-    manifest = {
-        "count": args.count,
-        "combo_frac": args.combo_frac,
-        "die_grid_frac": args.die_grid_frac,
-        "physics_frac": args.physics_frac,
-        "seed": args.seed,
-        "image_size": image_size,
-        "grid_size": grid_size,
-        "wafer_frac": wafer_frac,
-        "category_counts": dict(sorted(category_counts.items())),
-    }
-    (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-
-    print(f"Wrote {args.count} samples to {out_dir}")
