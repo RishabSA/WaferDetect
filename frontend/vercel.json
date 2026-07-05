@@ -3,7 +3,7 @@
 	"rewrites": [
 		{
 			"source": "/api/:path*",
-			"destination": "https://REPLACE-WITH-YOUR-SPACE.hf.space/api/:path*"
+			"destination": "https://rishaba-waferdetect.hf.space/api/:path*"
 		},
 		{ "source": "/:path*", "destination": "/index.html" }
 	]
