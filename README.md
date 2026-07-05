@@ -20,6 +20,10 @@ pinned: false
   the yield loss in dollars — from a model trained entirely on synthetic data.
 </p>
 
+<p align="center">
+  <a href="https://RishabA-waferdetect.hf.space"><strong>▶ Live demo — RishabA-waferdetect.hf.space</strong></a>
+</p>
+
 ---
 
 ## Why wafer maps
@@ -131,9 +135,29 @@ scripts/
   analytics/               die grid, yield models, $-economics, kinematics, knowledge base
   api/                     FastAPI app: analyze, wafers, yield, physics routers
 frontend/                  React 19 + TypeScript + Vite + Tailwind dashboard
+deploy/                    container entrypoint (boot-time weights + data fetch)
 docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite
 ```
+
+## Deployment
+
+The public instance runs at **[RishabA-waferdetect.hf.space](https://RishabA-waferdetect.hf.space)**
+as a single Docker container on a Hugging Face Space (free CPU tier: 2 vCPU,
+16 GB RAM). A multi-stage build (root `Dockerfile`) compiles the frontend with
+node, installs CPU-only torch wheels with uv, and serves the API and the built
+dashboard from the same FastAPI process on port 7860. The model weights and
+dataset are gitignored, so `deploy/entrypoint.sh` downloads them at container
+boot from the [RishabA/waferdetect-assets](https://huggingface.co/RishabA/waferdetect-assets)
+repo (URLs configured as `MODEL_URL` / `DATA_URL` Space variables).
+
+Every push to `main` on GitHub deploys automatically:
+`.github/workflows/sync-space.yml` force-pushes the repo to the Space, which
+rebuilds the image and restarts the app — code and frontend changes go live in
+a few minutes with no manual steps. Updating the model or dataset is separate
+from code pushes: upload the new file to the assets repo and restart the Space
+(no rebuild needed). First inference on a wafer takes a few seconds on the free
+CPUs; what-if parameter changes hit a server-side cache and return in ~30 ms.
 
 ## Roadmap
 
