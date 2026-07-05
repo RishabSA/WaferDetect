@@ -46,19 +46,19 @@ if __name__ == "__main__":
         "--model-path",
         type=str,
         default=str(default_model_path),
-        help="Trained *.pt weights to serve (default: waferdetect_runs/train/yolo26x_detector/weights/best.pt).",
+        help="Trained .pt YOLO segmentation model weights to serve (default: waferdetect_runs/train/yolo26x_detector/weights/best.pt).",
     )
     parser.add_argument(
         "--host",
         type=str,
         default="127.0.0.1",
-        help="Bind host (default: 127.0.0.1).",
+        help="Bind host for hosting the FastAPI server (default: 127.0.0.1).",
     )
     parser.add_argument(
         "--port",
         type=int,
         default=8000,
-        help="Bind port (default: 8000).",
+        help="Bind port for hosting the FastAPI server (default: 8000).",
     )
 
     args = parser.parse_args()

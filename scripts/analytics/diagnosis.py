@@ -107,19 +107,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--image", type=str, required=True, help="Wafer image path (required)."
+        "--image",
+        type=str,
+        required=True,
+        help="Wafer image path to diagnose and run the model on (required).",
     )
     parser.add_argument(
         "--labels",
         type=str,
         default="",
-        help="Ground-truth label txt to diagnose (default: unset).",
+        help="Ground-truth label txt to diagnose (default: '').",
     )
     parser.add_argument(
         "--model-path",
         type=str,
         default="",
-        help="Trained weights to detect with (default: unset).",
+        help="Fine-tuned YOLO segmentation model path .pt to load for detection (default: '').",
     )
     parser.add_argument(
         "--die-mm",
@@ -143,7 +146,7 @@ if __name__ == "__main__":
         "--out-dir",
         type=str,
         default=str(out_root),
-        help="Report output directory (default: runs/analytics).",
+        help="Report output directory to save results (default: runs/analytics).",
     )
 
     args = parser.parse_args()

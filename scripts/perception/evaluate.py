@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "--model-path",
         type=str,
         default="runs/train/yolo26x_detector/weights/best.pt",
-        help="Fine-tuned YOLO segmentation model path *.pt to load (default: runs/train/yolo26x_detector/weights/best.pt).",
+        help="Fine-tuned YOLO segmentation model path .pt to load for evaluation (default: runs/train/yolo26x_detector/weights/best.pt).",
     )
     parser.add_argument(
         "--name",
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         "--data",
         type=str,
         default=str(yolo_dir / "data.yaml"),
-        help="(default: data/yolo/data.yaml).",
+        help="Path to the YOLO data directory with the data.yaml file (default: data/yolo/data.yaml).",
     )
 
     args = parser.parse_args()

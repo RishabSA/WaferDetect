@@ -34,8 +34,10 @@ const chartTooltipStyle = {
 
 const YieldAnalytics = () => {
 	const [split, setSplit] = useState("test");
-	const [stem, setStem] = useState("0101_scratch");
-	const [stemInput, setStemInput] = useState("0101_scratch");
+	const [stem, setStem] = useState("0487_combo_random+edge_loc+comet");
+	const [stemInput, setStemInput] = useState(
+		"0487_combo_random+edge_loc+comet",
+	);
 
 	const pareto = useApi(() => api.pareto(split, paretoLimit), [split]);
 	const panel = useApi(() => api.yieldWafer(stem), [stem]);

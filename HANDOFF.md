@@ -377,7 +377,10 @@ Other repo items: root-level `experiment.ipynb`,
   dot markers, scan animation), `MetricTile.tsx`, `FieldHeatmap.tsx`, `DiagnosisCard.tsx`,
   `ParamField.tsx`.
 - Views: `views/Detect.tsx` (home: upload + gallery picker + view tabs + inline report),
-  `WaferExplorer.tsx`, `YieldAnalytics.tsx`, `PhysicsLab.tsx`.
+  `WaferExplorer.tsx`, `YieldAnalytics.tsx`, `PhysicsLab.tsx`, `Evaluation.tsx`
+  (added 2026-07-05: fully static `/evaluation` page — hardcoded yolo26x_detector benchmark
+  numbers from `runs/eval/yolo26x_detector/report.md`, per-class table, subset bars,
+  architecture blurb; no API calls — update the constants if the model is re-evaluated).
 - No frontend tests (removed 2026-07-04 by user decision); `npm run build` is the gate.
 
 ## 5. Load-bearing decisions and their reasons

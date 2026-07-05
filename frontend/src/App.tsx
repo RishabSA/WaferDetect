@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
 	FaBars,
 	FaChartBar,
+	FaClipboardCheck,
 	FaCrosshairs,
 	FaFlask,
 	FaThLarge,
@@ -10,6 +11,7 @@ import {
 import { NavLink, Route, Routes } from "react-router";
 
 import Detect from "./views/Detect";
+import Evaluation from "./views/Evaluation";
 import PhysicsLab from "./views/PhysicsLab";
 import WaferExplorer from "./views/WaferExplorer";
 import YieldAnalytics from "./views/YieldAnalytics";
@@ -19,6 +21,7 @@ const views = [
 	{ path: "/explorer", label: "Wafer Explorer", icon: FaThLarge },
 	{ path: "/yield", label: "Yield Analytics", icon: FaChartBar },
 	{ path: "/physics", label: "Physics Lab", icon: FaFlask },
+	{ path: "/evaluation", label: "Evaluation Results", icon: FaClipboardCheck },
 ];
 
 const navLinkClasses = (isActive: boolean): string =>
@@ -99,6 +102,7 @@ const App = () => {
 					<Route path="/explorer" element={<WaferExplorer />} />
 					<Route path="/yield" element={<YieldAnalytics />} />
 					<Route path="/physics" element={<PhysicsLab />} />
+					<Route path="/evaluation" element={<Evaluation />} />
 					<Route
 						path="*"
 						element={<p className="text-sm text-neutral-400">Select a view.</p>}
