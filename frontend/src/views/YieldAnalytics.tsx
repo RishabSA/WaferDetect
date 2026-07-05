@@ -154,7 +154,12 @@ const YieldAnalytics = () => {
 
 				<div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-6">
 					{tiles.map(([label, value, accent]) => (
-						<MetricTile key={label} label={label} value={value} accent={accent} />
+						<MetricTile
+							key={label}
+							label={label}
+							value={value}
+							accent={accent}
+						/>
 					))}
 				</div>
 			</div>

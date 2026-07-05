@@ -9,11 +9,9 @@
 			const themePreference = localStorage.getItem("waferdetect-theme");
 			document.documentElement.classList.toggle(
 				"dark",
-				themePreference === "light"
-					? false
-					: themePreference === "system"
-						? window.matchMedia("(prefers-color-scheme: dark)").matches
-						: true,
+				themePreference === "dark" ||
+					(themePreference === "system" &&
+						window.matchMedia("(prefers-color-scheme: dark)").matches),
 			);
 		</script>
 
@@ -21,7 +19,7 @@
 		<meta
 			name="description"
 			content="AI-powered wafer-map defect intelligence for semiconductor fabs — detects and segments failure patterns, diagnoses root causes, and quantifies yield loss in dollars." />
-		<meta name="theme-color" content="#070b12" />
+		<meta name="theme-color" content="#eef1f6" />
 
 		<link rel="icon" type="image/svg+xml" href="/assets/icon.svg" />
 		<link

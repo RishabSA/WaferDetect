@@ -1,5 +1,6 @@
 import hashlib
 import io
+import time
 from collections import OrderedDict
 from pathlib import Path
 from PIL import Image
@@ -27,6 +28,47 @@ max_display_dots = 4000
 
 cache_size = 16
 analysis_cache: OrderedDict = OrderedDict()
+
+# Public-deployment guards: inference is CPU-bound, so cap what one client can queue
+max_upload_bytes = 8 * 1024 * 1024
+rate_limit_calls = 30
+rate_window_seconds = 60.0
+max_tracked_clients = 1024
+request_log: dict = {}
+
+
+def enforce_rate_limit(request: Request) -> None:
+    forwarded = request.headers.get("x-forwarded-for")
+    client = (
+        forwarded.split(",")[0].strip()
+        if forwarded
+        else (request.client.host if request.client else "unknown")
+    )
+
+    now = time.monotonic()
+    recent = [
+        stamp
+        for stamp in request_log.get(client, [])
+        if now - stamp < rate_window_seconds
+    ]
+    if len(recent) >= rate_limit_calls:
+        raise HTTPException(
+            429,
+            f"Rate limit exceeded: {rate_limit_calls} analyses "
+            f"per {rate_window_seconds:.0f}s",
+        )
+
+    recent.append(now)
+    request_log[client] = recent
+
+    if len(request_log) > max_tracked_clients:
+        stale = [
+            key
+            for key, stamps in request_log.items()
+            if now - stamps[-1] >= rate_window_seconds
+        ]
+        for key in stale:
+            del request_log[key]
 
 
 def dot_sinogram(dots: np.ndarray) -> np.ndarray:
@@ -89,6 +131,8 @@ async def analyze(
     if bool(stem) == (file is not None):
         raise HTTPException(422, "Provide exactly one of stem or file")
 
+    enforce_rate_limit(request)
+
     model = request.app.state.model
     if model is None:
         raise HTTPException(503, "The model is not loaded")
@@ -103,6 +147,12 @@ async def analyze(
         key = stem
     else:
         payload = await file.read()
+        if len(payload) > max_upload_bytes:
+            raise HTTPException(
+                413,
+                f"Upload too large: {len(payload)} bytes "
+                f"(limit {max_upload_bytes})",
+            )
         key = hashlib.sha256(payload).hexdigest()
 
     # A hit skips image loading, dot extraction, YOLO, and both PNG renders —

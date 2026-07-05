@@ -30,5 +30,15 @@ dev = [
     "ruff>=0.15.20",
 ]
 
+# Linux (the deployment container) gets CPU-only torch wheels; macOS resolves from PyPI
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+torchvision = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]

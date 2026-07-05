@@ -10,7 +10,7 @@ const listeners = new Set<() => void>();
 
 const stored = localStorage.getItem(storageKey);
 let preference: ThemePreference =
-	stored === "light" || stored === "system" ? stored : "dark";
+	stored === "dark" || stored === "system" ? stored : "light";
 
 const isDark = (): boolean =>
 	preference === "system" ? systemDark.matches : preference === "dark";

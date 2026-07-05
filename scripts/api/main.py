@@ -6,6 +6,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from ultralytics import YOLO
 
 from scripts.api.routers import (
@@ -17,6 +18,7 @@ from scripts.api.routers import (
 
 default_model_path = Path("waferdetect_runs/train/yolo26x_detector/weights/best.pt")
 cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+frontend_dist = Path("frontend/dist")
 
 
 def create_app(model_path: Path | None) -> FastAPI:
@@ -35,6 +37,17 @@ def create_app(model_path: Path | None) -> FastAPI:
 
     for router_module in (analyze, physics, wafers, yields):
         app.include_router(router_module.router)
+
+    # Single-container deployments serve the built dashboard from the same origin;
+    # registered last so /api and /docs routes win, everything else is the SPA
+    if frontend_dist.is_dir():
+
+        @app.get("/{path:path}", include_in_schema=False)
+        def frontend(path: str) -> FileResponse:
+            file = (frontend_dist / path).resolve()
+            if file.is_file() and file.is_relative_to(frontend_dist.resolve()):
+                return FileResponse(file)
+            return FileResponse(frontend_dist / "index.html")
 
     return app
 

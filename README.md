@@ -1,3 +1,13 @@
+---
+title: WaferDetect
+emoji: 🛰️
+colorFrom: gray
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 <p align="center">
   <img src="frontend/public/assets/icon.svg" alt="WaferDetect icon" width="110" />
 </p>

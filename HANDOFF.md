@@ -115,7 +115,9 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   stem input grouped into a "Wafer lookup" card. Custom scrollbars, ::selection,
   prefers-reduced-motion guard in `index.css`; `theme-color` meta → #070b12. `npm run
   build` green. Not browser-verified (Chrome extension unavailable) — human gate pending.
-- **2026-07-05 theme switcher (light / dark / system).** Defaults to dark; persisted in
+- **2026-07-05 theme switcher (light / dark / system).** Defaults to LIGHT (flipped from
+  dark later the same day: index.html pre-paint script + theme.ts fall back to light when
+  localStorage is empty/invalid; static theme-color meta → #eef1f6); persisted in
   localStorage key `waferdetect-theme`. Mechanics: class-based Tailwind dark mode
   (`@custom-variant dark (&:where(.dark, .dark *))` in `index.css`), pre-paint inline
   script in `index.html` sets `.dark` on `<html>` before first render (no flash),
@@ -130,8 +132,32 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   replaced by `chartTheme(dark)` in `ui.ts`; Detect + YieldAnalytics call `useIsDark()` so
   recharts re-renders on toggle. `html{color-scheme}` flips native controls; scrollbars,
   ::selection, and the body die-grid texture each have per-theme values. Switcher UI:
-  `components/ThemeToggle.tsx` — sun/moon/monitor segmented control in the sidebar bottom
-  stack (shared with mobile drawer), aria-pressed + titles. `npm run build` green.
+  `components/ThemeToggle.tsx` — sun/moon/monitor segmented control, moved (user request)
+  from the sidebar bottom stack to directly under the brand in sidebar + mobile drawer;
+  aria-pressed + titles. `npm run build` green.
+- **2026-07-05 public deployment setup (HF Space + Vercel), built, not yet deployed.**
+  Architecture: one Docker container on a Hugging Face Space (free CPU tier, 2 vCPU/16 GB,
+  sleeps after 48 h idle) serving API + built dashboard same-origin; optional Vercel
+  frontend proxying `/api/*` to the Space via rewrites (no CORS involved anywhere).
+  Pieces: root `Dockerfile` (multi-stage: node:22 builds frontend → python:3.13-slim +
+  uv sync --frozen; user 1000 for Spaces; libgl1/libglib2.0-0 for opencv);
+  `deploy/entrypoint.sh` (boot-time fetch of weights + data tarball from `MODEL_URL`/
+  `DATA_URL` env vars — both artifacts are gitignored so they can't ship in the build
+  context — then uvicorn on port 7860); `.dockerignore`; HF Space YAML frontmatter added
+  atop `README.md` (sdk: docker, app_port: 7860 — renders as a small metadata table on
+  GitHub); `frontend/vercel.json` (api rewrite with REPLACE-WITH-YOUR-SPACE placeholder +
+  SPA catch-all); full runbook in `deploy/README.md` (docs/ is gitignored, deploy/ is
+  tracked). Code changes: `main.py` serves `frontend/dist` via a catch-all GET registered
+  after routers (file-exists check + resolve().is_relative_to traversal guard, index.html
+  fallback; only active when dist exists); `analyze.py` gained public-traffic guards
+  (8 MB upload cap → 413, 30 analyses/min per client IP → 429, sliding window keyed by
+  first X-Forwarded-For hop, request_log pruned past 1024 clients); `pyproject.toml` got
+  `[[tool.uv.index]] pytorch-cpu` + `[tool.uv.sources]` markers so **Linux resolves
+  torch/torchvision +cpu wheels** (uv.lock updated — nvidia/triton wheels dropped from the
+  linux graph; macOS resolution unchanged, `uv sync` verified). Verified: ruff clean,
+  124/124 pytest, npm build green, TestClient smoke of SPA serving (deep links, manifest,
+  /docs + /api precedence, traversal → fallback). User still runs: asset upload, Space
+  creation + env vars, git push to Space remote, Vercel import (steps in deploy/README.md).
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in
