@@ -158,6 +158,23 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   124/124 pytest, npm build green, TestClient smoke of SPA serving (deep links, manifest,
   /docs + /api precedence, traversal → fallback). User still runs: asset upload, Space
   creation + env vars, git push to Space remote, Vercel import (steps in deploy/README.md).
+  DEPLOYED 2026-07-05: Space live at rishaba-waferdetect.hf.space (assets in public model
+  repo RishabA/waferdetect-assets; first boot hit 401s while that repo was still private —
+  restart after flipping public fixed it). Vercel was briefly live too, then REMOVED same
+  day by user decision — HF Space is the sole deployment; frontend/vercel.json deleted and
+  docs/deployment.md de-Vercel'd (user should also delete the Vercel project in their
+  dashboard). User moved the runbook deploy/README.md → docs/deployment.md (gitignored,
+  local-only).
+  `.github/workflows/sync-space.yml` added: force-push mirror of main → Space on every
+  GitHub push (needs HF_TOKEN write token as a GitHub Actions repo secret).
+- 2026-07-05 Detect stale-wafer fix: picking a new wafer now immediately shows THAT
+  wafer's raw image (waferImageUrl for stems — browser-cached from the gallery thumb;
+  object URL for uploads, revoked on change) with the scan line and no overlays, instead
+  of the previous wafer's result. Mechanism: `loadedFor` ref records the stem/file that
+  produced `analysis.data` (safe because useApi's cancelled guard means responses only
+  land for the current deps); `dataIsCurrent` gates both the canvas and the sinogram tab
+  (stale sinogram → pulse skeleton). What-if param changes keep stem/file identical, so
+  the rendered result stays up during cached refetches — no flicker.
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in

@@ -1,5 +1,5 @@
 import type { ChangeEvent, DragEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FaInfoCircle, FaUpload } from "react-icons/fa";
 import { Link, useSearchParams } from "react-router";
 import {
@@ -105,7 +105,38 @@ const Detect = () => {
 
 	useEffect(() => setHidden([]), [analysis.data]);
 
+	// useApi keeps the previous response while a new request is in flight; record
+	// which wafer produced the loaded data so a newly picked wafer shows its own
+	// raw image (not the previous result) while YOLO runs
+	const loadedFor = useRef<{ stem: string; file: File | null }>({
+		stem: "",
+		file: null,
+	});
+	useEffect(() => {
+		if (analysis.data) {
+			loadedFor.current = { stem, file };
+		}
+	}, [analysis.data]);
+
+	const uploadPreview = useMemo(
+		() => (file ? URL.createObjectURL(file) : ""),
+		[file],
+	);
+	useEffect(
+		() => () => {
+			if (uploadPreview) {
+				URL.revokeObjectURL(uploadPreview);
+			}
+		},
+		[uploadPreview],
+	);
+
 	const data = analysis.data;
+	const dataIsCurrent =
+		data !== null &&
+		loadedFor.current.stem === stem &&
+		loadedFor.current.file === file;
+	const previewUrl = file ? uploadPreview : waferImageUrl(stem);
 	const summary = data?.wafer_summary;
 	const lossValue = useCountUp(summary?.total_loss_dollars ?? 0);
 	const yieldValue = useCountUp((summary?.yield ?? 0) * 100);
@@ -242,7 +273,7 @@ const Detect = () => {
 										<FaInfoCircle size={14} />
 									</button>
 								</div>
-								{data ? (
+								{data && dataIsCurrent ? (
 									<img
 										src={png(data.sinogram)}
 										alt="radon sinogram"
@@ -255,7 +286,7 @@ const Detect = () => {
 						) : (
 							<div className="relative p-3">
 								{stageBrackets}
-								{data ? (
+								{data && dataIsCurrent ? (
 									<WaferCanvas
 										imageUrl={png(data.image)}
 										overlays={view === "detections" ? overlays : []}
@@ -264,11 +295,11 @@ const Detect = () => {
 										scanning={analysis.loading}
 									/>
 								) : (
-									<div className="relative aspect-square w-full overflow-hidden rounded-full bg-inset ring-1 ring-cyan-600/25 dark:ring-cyan-400/25">
-										{analysis.loading && (
-											<div className="absolute inset-x-[6%] h-0.5 animate-scan rounded-full bg-cyan-400/90 shadow-[0_0_14px_3px_rgba(34,211,238,0.75)]" />
-										)}
-									</div>
+									<WaferCanvas
+										imageUrl={previewUrl}
+										overlays={[]}
+										scanning={analysis.loading}
+									/>
 								)}
 							</div>
 						)}
