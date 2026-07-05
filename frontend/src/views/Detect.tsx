@@ -17,15 +17,21 @@ import { api, useApi, waferCategories, waferImageUrl } from "../api";
 import DiagnosisCard from "../components/DiagnosisCard";
 import InfoModal from "../components/InfoModal";
 import MetricTile from "../components/MetricTile";
+import PageHeader from "../components/PageHeader";
 import { overlayColors, WaferCanvas } from "../components/WaferCanvas";
 import { dollars, percent, png } from "../format";
+import { useIsDark } from "../theme";
 import {
 	buttonPrimary,
 	card,
+	cardTitle,
+	chartTheme,
 	chip,
 	errorText,
-	heading,
 	input,
+	label,
+	segmented,
+	segmentedItem,
 	select,
 	subtle,
 } from "../ui";
@@ -47,15 +53,18 @@ const viewTabs = [
 ] as const;
 type ViewKey = (typeof viewTabs)[number]["key"];
 
-const chartTooltipStyle = {
-	backgroundColor: "#111114",
-	border: "1px solid rgba(255,255,255,0.15)",
-	borderRadius: 8,
-	color: "#e5e5e5",
-};
-
 const summaryTitle =
-	"cursor-pointer text-sm font-semibold text-white select-none marker:text-cyan-400";
+	"cursor-pointer text-xs font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none marker:text-cyan-600 dark:text-neutral-200 dark:marker:text-cyan-400";
+
+// stepper-style alignment marks framing the wafer stage
+const stageBrackets = (
+	<>
+		<span className="pointer-events-none absolute top-0 left-0 h-5 w-5 border-t border-l border-cyan-600/40 dark:border-cyan-400/40" />
+		<span className="pointer-events-none absolute top-0 right-0 h-5 w-5 border-t border-r border-cyan-600/40 dark:border-cyan-400/40" />
+		<span className="pointer-events-none absolute bottom-0 left-0 h-5 w-5 border-b border-l border-cyan-600/40 dark:border-cyan-400/40" />
+		<span className="pointer-events-none absolute right-0 bottom-0 h-5 w-5 border-r border-b border-cyan-600/40 dark:border-cyan-400/40" />
+	</>
+);
 
 const Detect = () => {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -72,6 +81,8 @@ const Detect = () => {
 	const [dieValue, setDieValue] = useState(25);
 	const [showSinogramInfo, setShowSinogramInfo] = useState(false);
 	const fileRef = useRef<HTMLInputElement>(null);
+	const isDark = useIsDark();
+	const chart = chartTheme(isDark);
 
 	const waferRadius =
 		waferPreset === "other" ? customRadius : Number(waferPreset);
@@ -160,15 +171,15 @@ const Detect = () => {
 
 	return (
 		<div className="flex animate-fade-up flex-col gap-5">
-			<div className="flex flex-wrap items-center gap-3">
-				<h2 className={heading}>Detect</h2>
+			<PageHeader kicker="Wafer inspection" title="Detect">
 				<span className={chip}>{file ? file.name : stem}</span>
 				{analysis.loading && (
-					<span className="text-sm text-cyan-300 animate-pulse">
-						analyzing…
+					<span className="flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-cyan-700 uppercase dark:text-cyan-300">
+						<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-600 dark:bg-cyan-400" />
+						Analyzing
 					</span>
 				)}
-			</div>
+			</PageHeader>
 
 			{analysis.error && (
 				<p className={errorText}>
@@ -180,19 +191,17 @@ const Detect = () => {
 
 			<div className="grid gap-5 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
 				<div className="flex flex-col gap-3">
-					<div className="flex items-center gap-1.5">
-						{viewTabs.map(tab => (
-							<button
-								key={tab.key}
-								onClick={() => setView(tab.key)}
-								className={`cursor-pointer rounded-lg px-3 py-1 text-sm transition-all ${
-									view === tab.key
-										? "bg-cyan-400/15 font-semibold text-cyan-300 ring-1 ring-cyan-400/40"
-										: "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
-								}`}>
-								{tab.label}
-							</button>
-						))}
+					<div className="flex flex-wrap items-center gap-2">
+						<div className={segmented}>
+							{viewTabs.map(tab => (
+								<button
+									key={tab.key}
+									onClick={() => setView(tab.key)}
+									className={segmentedItem(view === tab.key)}>
+									{tab.label}
+								</button>
+							))}
+						</div>
 						<div className="ml-auto">
 							<input
 								ref={fileRef}
@@ -225,13 +234,11 @@ const Detect = () => {
 						{view === "sinogram" ? (
 							<div className={card}>
 								<div className="flex items-center justify-between">
-									<h3 className="text-sm font-semibold text-white">
-										Radon sinogram
-									</h3>
+									<h3 className={cardTitle}>Radon sinogram</h3>
 									<button
 										onClick={() => setShowSinogramInfo(true)}
 										aria-label="About the Radon sinogram"
-										className="cursor-pointer rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-white/5 hover:text-cyan-300">
+										className="cursor-pointer rounded-lg p-1.5 text-neutral-500 transition-colors hover:bg-neutral-900/5 hover:text-cyan-700 dark:text-neutral-400 dark:hover:bg-white/5 dark:hover:text-cyan-300">
 										<FaInfoCircle size={14} />
 									</button>
 								</div>
@@ -242,21 +249,26 @@ const Detect = () => {
 										className="mt-2 w-full rounded-lg"
 									/>
 								) : (
-									<div className="mt-2 aspect-3/2 w-full animate-pulse rounded-lg bg-neutral-900" />
+									<div className="mt-2 aspect-3/2 w-full animate-pulse rounded-lg bg-inset" />
 								)}
 							</div>
-						) : data ? (
-							<WaferCanvas
-								imageUrl={png(data.image)}
-								overlays={view === "detections" ? overlays : []}
-								dots={view === "dots" ? data.dots : undefined}
-								dimImage={view === "dots"}
-								scanning={analysis.loading}
-							/>
 						) : (
-							<div className="relative aspect-square w-full overflow-hidden rounded-full bg-neutral-900 ring-1 ring-cyan-400/25">
-								{analysis.loading && (
-									<div className="absolute inset-x-[6%] h-0.5 animate-scan rounded-full bg-cyan-400/90 shadow-[0_0_14px_3px_rgba(34,211,238,0.75)]" />
+							<div className="relative p-3">
+								{stageBrackets}
+								{data ? (
+									<WaferCanvas
+										imageUrl={png(data.image)}
+										overlays={view === "detections" ? overlays : []}
+										dots={view === "dots" ? data.dots : undefined}
+										dimImage={view === "dots"}
+										scanning={analysis.loading}
+									/>
+								) : (
+									<div className="relative aspect-square w-full overflow-hidden rounded-full bg-inset ring-1 ring-cyan-600/25 dark:ring-cyan-400/25">
+										{analysis.loading && (
+											<div className="absolute inset-x-[6%] h-0.5 animate-scan rounded-full bg-cyan-400/90 shadow-[0_0_14px_3px_rgba(34,211,238,0.75)]" />
+										)}
+									</div>
 								)}
 							</div>
 						)}
@@ -267,7 +279,7 @@ const Detect = () => {
 
 					<div className={card}>
 						<div className="flex flex-wrap items-center gap-3">
-							<h3 className="text-sm font-semibold text-white">Browse wafers</h3>
+							<h3 className={cardTitle}>Browse wafers</h3>
 							<select
 								value={category}
 								onChange={(event: ChangeEvent<HTMLSelectElement>) =>
@@ -286,27 +298,35 @@ const Detect = () => {
 							)}
 							<Link
 								to="/explorer"
-								className="ml-auto cursor-pointer text-sm text-cyan-300 transition-colors hover:text-cyan-200">
+								className="ml-auto cursor-pointer text-sm text-cyan-700 transition-colors hover:text-cyan-600 dark:text-cyan-300 dark:hover:text-cyan-200">
 								Open full explorer →
 							</Link>
 						</div>
 						<div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+							{gallery.loading &&
+								!gallery.data &&
+								Array.from({ length: 8 }, (_, index) => (
+									<div key={index} className="w-24 shrink-0 p-1.5">
+										<div className="aspect-square w-full animate-pulse rounded-full bg-neutral-900/5 dark:bg-white/5" />
+										<div className="mx-auto mt-2 h-2.5 w-14 animate-pulse rounded bg-neutral-900/5 dark:bg-white/5" />
+									</div>
+								))}
 							{gallery.data?.items.map(item => (
 								<button
 									key={item.stem}
 									onClick={() => selectWafer(item.stem)}
-									className={`w-24 shrink-0 cursor-pointer rounded-xl p-1.5 transition-all hover:bg-white/10 ${
+									className={`w-24 shrink-0 cursor-pointer rounded-xl p-1.5 transition-all hover:bg-neutral-900/5 dark:hover:bg-white/10 ${
 										!file && item.stem === stem
-											? "bg-cyan-400/10 ring-1 ring-cyan-400/50"
+											? "bg-cyan-500/10 ring-1 ring-cyan-600/50 dark:bg-cyan-400/10 dark:ring-cyan-400/50"
 											: ""
 									}`}>
 									<img
 										src={waferImageUrl(item.stem)}
 										alt={item.stem}
 										loading="lazy"
-										className="aspect-square w-full rounded-full border border-white/10"
+										className="aspect-square w-full rounded-full border border-neutral-900/10 dark:border-white/10"
 									/>
-									<p className="mt-1 truncate text-center text-xs text-neutral-300">
+									<p className="mt-1 truncate text-center font-mono text-[10px] text-neutral-500 dark:text-neutral-400">
 										{item.category}
 									</p>
 								</button>
@@ -317,20 +337,16 @@ const Detect = () => {
 
 				<div className="flex flex-col gap-4">
 					<div className={card}>
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<p className="text-xs tracking-wide text-neutral-400 uppercase">
-									Attributed loss
-								</p>
-								<p className="text-3xl font-extrabold text-red-400 tabular-nums">
+						<div className="grid grid-cols-2">
+							<div className="pr-4">
+								<p className={label}>Attributed loss</p>
+								<p className="mt-1 font-mono text-3xl font-bold tracking-tight text-red-600 tabular-nums md:text-4xl dark:text-red-400">
 									{dollars(lossValue)}
 								</p>
 							</div>
-							<div>
-								<p className="text-xs tracking-wide text-neutral-400 uppercase">
-									Wafer yield
-								</p>
-								<p className="text-3xl font-extrabold text-emerald-400 tabular-nums">
+							<div className="border-l border-neutral-900/10 pl-4 dark:border-white/8">
+								<p className={label}>Wafer yield</p>
+								<p className="mt-1 font-mono text-3xl font-bold tracking-tight text-emerald-600 tabular-nums md:text-4xl dark:text-emerald-400">
 									{yieldValue.toFixed(1)}%
 								</p>
 							</div>
@@ -347,17 +363,15 @@ const Detect = () => {
 							<MetricTile
 								label="Top defect"
 								value={topDefect ? topDefect.class : "none"}
-								accent="text-cyan-300"
+								accent="text-cyan-700 dark:text-cyan-300"
 							/>
 						</div>
 					</div>
 
 					<div className={card}>
-						<h3 className="text-sm font-semibold text-white">
-							What-if parameters
-						</h3>
+						<h3 className={cardTitle}>What-if parameters</h3>
 						<div className="mt-3 flex flex-col gap-3">
-							<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+							<label className={`flex flex-col gap-1.5 ${label}`}>
 								Wafer size
 								<select
 									value={waferPreset}
@@ -374,7 +388,7 @@ const Detect = () => {
 								</select>
 							</label>
 							{waferPreset === "other" && (
-								<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+								<label className={`flex flex-col gap-1.5 ${label}`}>
 									Custom radius (mm)
 									<input
 										type="number"
@@ -382,12 +396,17 @@ const Detect = () => {
 										min={10}
 										step={5}
 										onChange={onCustomRadius}
-										className={input}
+										className={`font-mono tabular-nums ${input}`}
 									/>
 								</label>
 							)}
-							<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
-								Die size — {dieMm.toFixed(1)} mm
+							<label className={`flex flex-col gap-1.5 ${label}`}>
+								<span>
+									Die size —{" "}
+									<span className="text-cyan-700 dark:text-cyan-300">
+										{dieMm.toFixed(1)} mm
+									</span>
+								</span>
 								<input
 									type="range"
 									min={dieMmMin}
@@ -397,10 +416,10 @@ const Detect = () => {
 									onChange={(event: ChangeEvent<HTMLInputElement>) =>
 										setDieMm(Number(event.target.value))
 									}
-									className="w-full cursor-pointer accent-cyan-400"
+									className="w-full cursor-pointer accent-cyan-600 dark:accent-cyan-400"
 								/>
 							</label>
-							<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
+							<label className={`flex flex-col gap-1.5 ${label}`}>
 								Value per good die ($)
 								<input
 									type="number"
@@ -408,11 +427,11 @@ const Detect = () => {
 									min={0}
 									step={1}
 									onChange={onDieValue}
-									className={input}
+									className={`font-mono tabular-nums ${input}`}
 								/>
 							</label>
 							{valueWarning && impliedWaferValue !== null && (
-								<p className="text-xs text-yellow-300">
+								<p className="text-xs leading-relaxed text-amber-600 dark:text-yellow-300">
 									At {dollars(dieValue)} per die this wafer is worth ~
 									{dollars(impliedWaferValue)} — outside the typical{" "}
 									{dollars(typicalWaferValueMin)}–
@@ -423,9 +442,7 @@ const Detect = () => {
 					</div>
 
 					<div className={card}>
-						<h3 className="text-sm font-semibold text-white">
-							Model detections
-						</h3>
+						<h3 className={cardTitle}>Model detections</h3>
 						{data?.detections.length === 0 && (
 							<p className={`mt-2 ${subtle}`}>
 								No defects detected on this wafer.
@@ -436,10 +453,10 @@ const Detect = () => {
 								<button
 									key={`${detection.class}-${index}`}
 									onClick={() => toggleHidden(index)}
-									className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors hover:border-cyan-400/50 ${
+									className={`flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors hover:border-cyan-600/50 dark:hover:border-cyan-400/50 ${
 										hidden.includes(index)
-											? "border-white/5 text-neutral-600"
-											: "border-white/10 text-neutral-200"
+											? "border-neutral-900/5 text-neutral-400 dark:border-white/5 dark:text-neutral-600"
+											: "border-neutral-900/10 bg-neutral-900/2 text-neutral-700 dark:border-white/10 dark:bg-white/2 dark:text-neutral-200"
 									}`}>
 									<span
 										className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -449,7 +466,7 @@ const Detect = () => {
 										}}
 									/>
 									{detection.class}
-									<span className="ml-auto text-xs text-neutral-400 tabular-nums">
+									<span className="ml-auto font-mono text-[11px] text-neutral-500 tabular-nums dark:text-neutral-400">
 										{percent(detection.confidence)} ·{" "}
 										{dollars(detection.yield_loss.dollars)}
 									</span>
@@ -458,7 +475,7 @@ const Detect = () => {
 						</div>
 						{data?.ground_truth && (
 							<div className="mt-3 flex flex-wrap items-center gap-1.5">
-								<span className="text-xs text-neutral-500">ground truth:</span>
+								<span className={label}>ground truth</span>
 								{data.ground_truth.map((name, index) => (
 									<span key={`${name}-${index}`} className={chip}>
 										{name}
@@ -504,50 +521,48 @@ const Detect = () => {
 									/>
 								</div>
 								<div>
-									<h4 className="mb-1 text-xs tracking-wide text-neutral-400 uppercase">
-										Radial fail rate
-									</h4>
+									<h4 className={`mb-1 ${label}`}>Radial fail rate</h4>
 									<ResponsiveContainer width="100%" height={180}>
 										<BarChart data={radialData}>
 											<CartesianGrid
 												strokeDasharray="3 3"
-												stroke="rgba(255,255,255,0.08)"
+												stroke={chart.grid}
 											/>
 											<XAxis
 												dataKey="bin"
-												stroke="#525252"
-												tick={{ fill: "#a3a3a3", fontSize: 11 }}
+												stroke={chart.axis}
+												tick={chart.tick}
 											/>
 											<YAxis
-												stroke="#525252"
-												tick={{ fill: "#a3a3a3", fontSize: 11 }}
+												stroke={chart.axis}
+												tick={chart.tick}
 												tickFormatter={(value: number) => percent(value)}
 											/>
 											<Tooltip
 												formatter={value => percent(Number(value))}
-												contentStyle={chartTooltipStyle}
+												contentStyle={chart.tooltip}
 											/>
 											<Bar
 												dataKey="rate"
-												fill="#22d3ee"
+												fill={chart.bar}
 												radius={[4, 4, 0, 0]}
 											/>
 										</BarChart>
 									</ResponsiveContainer>
 								</div>
 								<div>
-									<h4 className="mb-1 text-xs tracking-wide text-neutral-400 uppercase">
-										Zone yields
-									</h4>
+									<h4 className={`mb-1 ${label}`}>Zone yields</h4>
 									{Object.entries(data.zones).map(([zone, value]) => (
 										<div key={zone} className="mb-2">
-											<div className="flex justify-between text-sm text-neutral-300">
+											<div className="flex justify-between text-sm text-neutral-600 dark:text-neutral-300">
 												<span>{zone}</span>
-												<span className="tabular-nums">{percent(value)}</span>
+												<span className="font-mono text-xs tabular-nums">
+													{percent(value)}
+												</span>
 											</div>
-											<div className="h-1.5 rounded-full bg-white/10">
+											<div className="h-1.5 rounded-full bg-neutral-900/10 dark:bg-white/10">
 												<div
-													className="h-1.5 rounded-full bg-emerald-400"
+													className="h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400"
 													style={{ width: `${value * 100}%` }}
 												/>
 											</div>

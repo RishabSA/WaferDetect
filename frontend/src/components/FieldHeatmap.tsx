@@ -1,4 +1,5 @@
 import { png } from "../format";
+import { label } from "../ui";
 
 interface FieldHeatmapProps {
 	title: string;
@@ -11,11 +12,9 @@ const FieldHeatmap = ({ title, image }: FieldHeatmapProps) => {
 			<img
 				src={png(image)}
 				alt={title}
-				className="aspect-square w-full max-w-xs rounded-xl border border-white/10 bg-white/5"
+				className="aspect-square w-full max-w-xs rounded-lg border border-neutral-900/10 bg-inset dark:border-white/10"
 			/>
-			<figcaption className="text-xs tracking-wide text-neutral-400 uppercase">
-				{title}
-			</figcaption>
+			<figcaption className={label}>{title}</figcaption>
 		</figure>
 	);
 };

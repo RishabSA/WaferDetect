@@ -4,11 +4,24 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+		<!-- set the theme class before first paint; theme.ts owns it after mount -->
+		<script>
+			const themePreference = localStorage.getItem("waferdetect-theme");
+			document.documentElement.classList.toggle(
+				"dark",
+				themePreference === "light"
+					? false
+					: themePreference === "system"
+						? window.matchMedia("(prefers-color-scheme: dark)").matches
+						: true,
+			);
+		</script>
+
 		<title>WaferDetect — Wafer-Map Defect Intelligence</title>
 		<meta
 			name="description"
 			content="AI-powered wafer-map defect intelligence for semiconductor fabs — detects and segments failure patterns, diagnoses root causes, and quantifies yield loss in dollars." />
-		<meta name="theme-color" content="#0b0b11" />
+		<meta name="theme-color" content="#070b12" />
 
 		<link rel="icon" type="image/svg+xml" href="/assets/icon.svg" />
 		<link

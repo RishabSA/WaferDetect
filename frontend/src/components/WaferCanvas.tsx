@@ -33,7 +33,7 @@ export const WaferCanvas = ({
 	scanning = false,
 }: WaferCanvasProps) => {
 	return (
-		<div className="relative w-full overflow-hidden rounded-full bg-neutral-900 ring-1 ring-cyan-400/25 shadow-[0_0_70px_rgba(34,211,238,0.14)]">
+		<div className="relative w-full overflow-hidden rounded-full bg-inset ring-1 ring-cyan-600/25 shadow-[0_0_70px_rgba(34,211,238,0.16)] dark:ring-cyan-400/25">
 			<img
 				src={imageUrl}
 				alt="wafer map"

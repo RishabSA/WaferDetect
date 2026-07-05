@@ -3,9 +3,18 @@ import { useState } from "react";
 import type { FieldResponse, ShotGridResponse, ThermalResponse } from "../api";
 import { api } from "../api";
 import FieldHeatmap from "../components/FieldHeatmap";
+import PageHeader from "../components/PageHeader";
 import ParamField from "../components/ParamField";
 import { png } from "../format";
-import { buttonPrimary, card, errorText, heading, select, subtle } from "../ui";
+import {
+	buttonPrimary,
+	card,
+	errorText,
+	segmented,
+	segmentedItem,
+	select,
+	subtle,
+} from "../ui";
 
 const tabs = ["thermal", "spincoat", "cmp", "shotgrid"] as const;
 type Tab = (typeof tabs)[number];
@@ -13,9 +22,11 @@ type Tab = (typeof tabs)[number];
 const spincoatModes = ["center", "annular", "tilt", "edge_bead"];
 const cmpModes = ["center", "edge_ring", "donut"];
 const verdictStyles: Record<string, string> = {
-	none: "bg-emerald-400/15 text-emerald-300 ring-emerald-400/40",
-	stage_or_dose: "bg-yellow-400/15 text-yellow-300 ring-yellow-400/40",
-	reticle_defect: "bg-red-400/15 text-red-300 ring-red-400/40",
+	none: "bg-emerald-500/10 text-emerald-700 ring-emerald-600/40 dark:bg-emerald-400/15 dark:text-emerald-300 dark:ring-emerald-400/40",
+	stage_or_dose:
+		"bg-amber-500/10 text-amber-700 ring-amber-600/40 dark:bg-yellow-400/15 dark:text-yellow-300 dark:ring-yellow-400/40",
+	reticle_defect:
+		"bg-red-500/10 text-red-700 ring-red-600/40 dark:bg-red-400/15 dark:text-red-300 dark:ring-red-400/40",
 };
 
 const PhysicsLab = () => {
@@ -68,18 +79,14 @@ const PhysicsLab = () => {
 
 	return (
 		<div className="flex animate-fade-up flex-col gap-4">
-			<h2 className={heading}>Physics Lab</h2>
+			<PageHeader kicker="Process simulation" title="Physics Lab" />
 
-			<div className="flex flex-wrap gap-1.5">
+			<div className={segmented}>
 				{tabs.map(name => (
 					<button
 						key={name}
 						onClick={() => setTab(name)}
-						className={`cursor-pointer rounded-lg px-3 py-1 text-sm transition-all ${
-							tab === name
-								? "bg-cyan-400/15 font-semibold text-cyan-300 ring-1 ring-cyan-400/40"
-								: "text-neutral-400 hover:bg-white/5 hover:text-neutral-200"
-						}`}>
+						className={segmentedItem(tab === name)}>
 						{name}
 					</button>
 				))}
@@ -155,7 +162,7 @@ const PhysicsLab = () => {
 
 			{tab === "thermal" && thermal && (
 				<div className="flex animate-fade-up flex-col gap-2">
-					<p className={subtle}>
+					<p className={`font-mono text-xs tabular-nums ${subtle}`}>
 						{thermal.stats.min_temperature.toFixed(0)} K to{" "}
 						{thermal.stats.max_temperature.toFixed(0)} K
 					</p>
@@ -179,9 +186,9 @@ const PhysicsLab = () => {
 			{tab === "shotgrid" && shot && (
 				<div className="flex animate-fade-up flex-col gap-2">
 					<span
-						className={`w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${
+						className={`w-fit rounded-md px-2.5 py-0.5 font-mono text-[11px] font-semibold ring-1 ${
 							verdictStyles[shot.verdict.verdict] ??
-							"bg-white/10 text-neutral-300 ring-white/20"
+							"bg-neutral-900/10 text-neutral-600 ring-neutral-900/20 dark:bg-white/10 dark:text-neutral-300 dark:ring-white/20"
 						}`}>
 						analysis verdict: {shot.verdict.verdict}
 					</span>
@@ -190,7 +197,7 @@ const PhysicsLab = () => {
 						<img
 							src={png(shot.sample)}
 							alt="generated wafer"
-							className="aspect-square w-full max-w-xs rounded-xl border border-white/10 bg-white/5"
+							className="aspect-square w-full max-w-xs rounded-lg border border-neutral-900/10 bg-inset dark:border-white/10"
 						/>
 					</div>
 				</div>

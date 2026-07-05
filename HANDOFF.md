@@ -95,6 +95,43 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   YOLO detections + diagnosis + yield + display dots + sinogram in one response). Fixed
   `/api/yield/wafer/{stem}` missing `total_loss_dollars`/`yield_random` (crashed Yield
   Analytics). Live-verified via curl (stem + upload paths). Remaining: human browser gate.
+- **2026-07-05 visual overhaul ("metrology instrument" pass), all five views.** Typography:
+  Space Grotesk (UI, via `@fontsource-variable/space-grotesk`) + IBM Plex Mono (every
+  number/ID/label, via `@fontsource/ibm-plex-mono` 400–700) — bundled locally, imported in
+  `main.tsx`, no runtime Google Fonts. Tailwind v4 `@theme` surface tokens in `index.css`:
+  `void` #070b12 (page, with faint SVG die-grid texture — flat strokes, still zero
+  gradients), `panel` #0d131e (cards, now solid — glassy `bg-white/5 backdrop-blur` is
+  gone), `inset` #060a10 (inputs + MetricTile readouts, darker than panels). Signature
+  elements: cyan scribe-mark tick before every panel title (`cardTitle` in `ui.ts`, via
+  `before:` pseudo), reticle corner brackets around the Detect wafer stage, mono uppercase
+  kickers on every page via new `components/PageHeader.tsx` (Wafer inspection / Dataset /
+  Fab economics / Process simulation / Model benchmarks). `ui.ts` grew: `cardTitle`,
+  `eyebrow`, `label`, `segmented`/`segmentedItem(active)` (tab pills, used by Detect view
+  tabs + Physics tabs), `chartTick` + `chartTooltipStyle` (recharts styling, deduped out of
+  Detect/YieldAnalytics). Buttons: primary is now cyan-400 with dark text + press scale;
+  hero numbers are mono text-4xl. Sidebar: nav "Console" kicker + bottom model plaque
+  (yolo26x-seg / mAP50 0.852) + version line. Skeleton loading states added to Detect
+  gallery strip and Explorer grid; Explorer pagination shows "page x / y"; YieldAnalytics
+  stem input grouped into a "Wafer lookup" card. Custom scrollbars, ::selection,
+  prefers-reduced-motion guard in `index.css`; `theme-color` meta → #070b12. `npm run
+  build` green. Not browser-verified (Chrome extension unavailable) — human gate pending.
+- **2026-07-05 theme switcher (light / dark / system).** Defaults to dark; persisted in
+  localStorage key `waferdetect-theme`. Mechanics: class-based Tailwind dark mode
+  (`@custom-variant dark (&:where(.dark, .dark *))` in `index.css`), pre-paint inline
+  script in `index.html` sets `.dark` on `<html>` before first render (no flash),
+  `src/theme.ts` owns state (module store + `useSyncExternalStore` hooks
+  `useThemePreference`/`useIsDark`, `setThemePreference`; follows
+  `prefers-color-scheme` changes live when preference = system; also syncs the
+  `theme-color` meta). Surface tokens flip via CSS variables (`--color-void/panel/inset`
+  hold light values #eef1f6/#ffffff/#e7ebf2 in `@theme`; `.dark {}` overrides to the dark
+  ones) so `bg-panel`-style classes need no variant; every other color-bearing class got
+  explicit light+dark pairs (accents shift cyan-700↔cyan-300, emerald-600↔400,
+  red-600↔400, amber-600↔yellow-300 for contrast on white). `chartTick`/`chartTooltipStyle`
+  replaced by `chartTheme(dark)` in `ui.ts`; Detect + YieldAnalytics call `useIsDark()` so
+  recharts re-renders on toggle. `html{color-scheme}` flips native controls; scrollbars,
+  ::selection, and the body die-grid texture each have per-theme values. Switcher UI:
+  `components/ThemeToggle.tsx` — sun/moon/monitor segmented control in the sidebar bottom
+  stack (shared with mobile drawer), aria-pressed + titles. `npm run build` green.
 - 2026-07-02: all code moved from `src/waferdetect/` to `scripts/` (no installed package,
   no build system — see §4). All docs and commands were updated in the same pass.
 - The user personally rewrote the Stage 1 code after generation to enforce the coding style in

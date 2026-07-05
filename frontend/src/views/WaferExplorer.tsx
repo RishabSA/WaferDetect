@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router";
 
 import { api, useApi, waferCategories, waferImageUrl } from "../api";
-import { buttonGhost, errorText, heading, select, subtle } from "../ui";
+import PageHeader from "../components/PageHeader";
+import { buttonGhost, errorText, select, subtle } from "../ui";
 
 const splits = ["", "train", "val", "test"];
 const pageSize = 24;
@@ -20,8 +21,7 @@ const WaferExplorer = () => {
 
 	return (
 		<div className="flex animate-fade-up flex-col gap-4">
-			<div className="flex flex-wrap items-center gap-3">
-				<h2 className={heading}>Wafer Explorer</h2>
+			<PageHeader kicker="Dataset" title="Wafer Explorer">
 				<select
 					value={split}
 					onChange={event => {
@@ -49,28 +49,42 @@ const WaferExplorer = () => {
 						</option>
 					))}
 				</select>
-				{data && <span className={subtle}>{data.total} wafers</span>}
-			</div>
+				{data && (
+					<span className={`font-mono text-xs tabular-nums ${subtle}`}>
+						{data.total} wafers
+					</span>
+				)}
+			</PageHeader>
 
 			{error && <p className={errorText}>{error}</p>}
-			{loading && <p className={subtle}>Loading...</p>}
 
 			<div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6">
+				{loading &&
+					!data &&
+					Array.from({ length: pageSize }, (_, index) => (
+						<div
+							key={index}
+							className="rounded-xl border border-neutral-900/10 bg-panel p-3 dark:border-white/8">
+							<div className="aspect-square w-full animate-pulse rounded-full bg-neutral-900/5 dark:bg-white/5" />
+							<div className="mt-2 h-3 w-3/4 animate-pulse rounded bg-neutral-900/5 dark:bg-white/5" />
+							<div className="mt-1.5 h-2.5 w-1/2 animate-pulse rounded bg-neutral-900/5 dark:bg-white/5" />
+						</div>
+					))}
 				{data?.items.map(item => (
 					<Link
 						key={item.stem}
 						to={`/?stem=${encodeURIComponent(item.stem)}`}
-						className="group cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-3 backdrop-blur transition-all hover:border-cyan-400/50 hover:bg-white/10 hover:shadow-[0_0_24px_rgba(34,211,238,0.15)]">
+						className="group cursor-pointer rounded-xl border border-neutral-900/10 bg-panel p-3 transition-all hover:border-cyan-600/50 hover:shadow-[0_0_24px_rgba(34,211,238,0.12)] dark:border-white/8 dark:hover:border-cyan-400/50">
 						<img
 							src={waferImageUrl(item.stem)}
 							alt={item.stem}
-							className="aspect-square w-full rounded-full border border-white/10 transition-transform group-hover:scale-[1.03]"
+							className="aspect-square w-full rounded-full border border-neutral-900/10 bg-inset transition-transform group-hover:scale-[1.03] dark:border-white/10"
 							loading="lazy"
 						/>
-						<p className="mt-2 truncate text-xs font-medium text-neutral-100">
+						<p className="mt-2 truncate font-mono text-[11px] font-medium text-neutral-800 dark:text-neutral-200">
 							{item.stem}
 						</p>
-						<p className="text-xs text-neutral-400">
+						<p className="mt-0.5 font-mono text-[10px] text-neutral-500">
 							{item.category} · {item.split}
 						</p>
 					</Link>
@@ -84,8 +98,9 @@ const WaferExplorer = () => {
 					className={buttonGhost}>
 					Prev
 				</button>
-				<span className="text-sm text-neutral-300 tabular-nums">
+				<span className="font-mono text-xs text-neutral-500 tabular-nums dark:text-neutral-400">
 					page {page + 1}
+					{data ? ` / ${Math.max(1, Math.ceil(data.total / pageSize))}` : ""}
 				</span>
 				<button
 					disabled={!data || (page + 1) * pageSize >= data.total}

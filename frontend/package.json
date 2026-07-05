@@ -10,6 +10,8 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@fontsource-variable/space-grotesk": "^5.2.10",
+		"@fontsource/ibm-plex-mono": "^5.2.7",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"react-icons": "^5.5.0",

@@ -1,5 +1,7 @@
 import type { ChangeEvent } from "react";
 
+import { input, label } from "../ui";
+
 interface ParamFieldProps {
 	label: string;
 	value: number;
@@ -8,14 +10,14 @@ interface ParamFieldProps {
 }
 
 const ParamField = ({
-	label,
+	label: text,
 	value,
 	onChange,
 	step = 0.01,
 }: ParamFieldProps) => {
 	return (
-		<label className="flex flex-col gap-1 text-xs tracking-wide text-neutral-400 uppercase">
-			{label}
+		<label className={`flex flex-col gap-1.5 ${label}`}>
+			{text}
 			<input
 				type="number"
 				value={value}
@@ -23,7 +25,7 @@ const ParamField = ({
 				onChange={(event: ChangeEvent<HTMLInputElement>) =>
 					onChange(Number(event.target.value))
 				}
-				className="w-28 rounded-lg border border-white/10 bg-neutral-900/80 px-2.5 py-1.5 text-sm text-neutral-200 transition-colors hover:border-cyan-400/40 focus:border-cyan-400 focus:outline-none"
+				className={`w-28 font-mono tabular-nums ${input}`}
 			/>
 		</label>
 	);
