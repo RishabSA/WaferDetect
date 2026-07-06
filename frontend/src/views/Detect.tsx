@@ -1,6 +1,6 @@
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaInfoCircle, FaUpload } from "react-icons/fa";
+import { FaFilePdf, FaInfoCircle, FaUpload } from "react-icons/fa";
 import { Link, useSearchParams } from "react-router";
 import {
 	Bar,
@@ -22,6 +22,7 @@ import { overlayColors, WaferCanvas } from "../components/WaferCanvas";
 import { dollars, percent, png } from "../format";
 import { useIsDark } from "../theme";
 import {
+	buttonGhost,
 	buttonPrimary,
 	card,
 	cardTitle,
@@ -80,6 +81,8 @@ const Detect = () => {
 	const [dieValueInput, setDieValueInput] = useState("25");
 	const [dieValue, setDieValue] = useState(25);
 	const [showSinogramInfo, setShowSinogramInfo] = useState(false);
+	const [exporting, setExporting] = useState(false);
+	const [exportError, setExportError] = useState("");
 	const fileRef = useRef<HTMLInputElement>(null);
 	const isDark = useIsDark();
 	const chart = chartTheme(isDark);
@@ -159,6 +162,32 @@ const Detect = () => {
 		}
 	};
 
+	const onExport = async () => {
+		setExporting(true);
+		setExportError("");
+		try {
+			const params = {
+				die_mm: dieMmDebounced,
+				die_value: dieValueDebounced,
+				wafer_radius_mm: waferRadiusDebounced,
+			};
+			const blob = file
+				? await api.reportFile(file, params)
+				: await api.report(stem, params);
+
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement("a");
+			link.href = url;
+			link.download = `waferdetect_${file ? file.name.replace(/\.[^.]+$/, "") : stem}.pdf`;
+			link.click();
+			URL.revokeObjectURL(url);
+		} catch (cause) {
+			setExportError((cause as Error).message);
+		} finally {
+			setExporting(false);
+		}
+	};
+
 	const onDieValue = (event: ChangeEvent<HTMLInputElement>) => {
 		setDieValueInput(event.target.value);
 		const next = Number(event.target.value);
@@ -219,6 +248,7 @@ const Detect = () => {
 						" — start the API with --model-path to enable analysis."}
 				</p>
 			)}
+			{exportError && <p className={errorText}>{exportError}</p>}
 
 			<div className="grid gap-5 lg:grid-cols-[minmax(0,11fr)_minmax(0,9fr)]">
 				<div className="flex flex-col gap-3">
@@ -233,7 +263,16 @@ const Detect = () => {
 								</button>
 							))}
 						</div>
-						<div className="ml-auto">
+						<div className="ml-auto flex items-center gap-2">
+							<button
+								onClick={onExport}
+								disabled={!data || !dataIsCurrent || exporting}
+								className={buttonGhost}>
+								<span className="flex items-center gap-2">
+									<FaFilePdf size={12} />
+									{exporting ? "Rendering…" : "Export report"}
+								</span>
+							</button>
 							<input
 								ref={fileRef}
 								type="file"

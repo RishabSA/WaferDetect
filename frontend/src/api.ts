@@ -138,6 +138,17 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
 	return response.json() as Promise<T>;
 };
 
+const requestBlob = async (path: string, init?: RequestInit): Promise<Blob> => {
+	const response = await fetch(path, init);
+	if (!response.ok) {
+		throw new Error(
+			`${init?.method ?? "GET"} ${path} failed (${response.status}): ${await response.text()}`,
+		);
+	}
+
+	return response.blob();
+};
+
 const analyzeQuery = (params: AnalyzeParams): string =>
 	new URLSearchParams({
 		die_mm: String(params.die_mm),
@@ -176,6 +187,19 @@ export const api = {
 		const body = new FormData();
 		body.append("file", file);
 		return request<AnalyzeResponse>(`/api/analyze?${analyzeQuery(params)}`, {
+			method: "POST",
+			body,
+		});
+	},
+	report: (stem: string, params: AnalyzeParams) =>
+		requestBlob(
+			`/api/report?stem=${encodeURIComponent(stem)}&${analyzeQuery(params)}`,
+			{ method: "POST" },
+		),
+	reportFile: (file: File, params: AnalyzeParams) => {
+		const body = new FormData();
+		body.append("file", file);
+		return requestBlob(`/api/report?${analyzeQuery(params)}`, {
 			method: "POST",
 			body,
 		});

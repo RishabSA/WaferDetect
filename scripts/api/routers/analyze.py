@@ -5,13 +5,14 @@ from collections import OrderedDict
 from pathlib import Path
 from PIL import Image
 import numpy as np
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile
 from skimage.transform import radon
 from ultralytics import YOLO
 
 from scripts.analytics.diagnosis import diagnose, kb_path, load_knowledge_base
 from scripts.analytics.diegrid import radial_yield, zone_yields
 from scripts.api.plots import image_png, sinogram_png
+from scripts.api.report import report_pdf
 from scripts.baselines.classical import dot_coordinates
 from scripts.datagen.generator import wafer_frac
 from scripts.perception.annotations import load_class_names, load_label_file
@@ -204,3 +205,27 @@ async def analyze(
         "zones": zone_yields(dots, die_mm, wafer_radius_mm),
         "ground_truth": ground_truth,
     }
+
+
+@router.post("/api/report")
+async def report(
+    request: Request,
+    stem: str = "",
+    die_mm: float = 6.0,
+    die_value: float = 25.0,
+    wafer_radius_mm: float = 150.0,
+    file: UploadFile | None = File(default=None),
+) -> Response:
+    # Same sources, params, cache, and rate limit as /api/analyze
+    analysis = await analyze(request, stem, die_mm, die_value, wafer_radius_mm, file)
+
+    name = stem or (file.filename if file and file.filename else "upload")
+    pdf = report_pdf(analysis, name, die_mm, die_value, wafer_radius_mm)
+
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="waferdetect_{name}.pdf"'
+        },
+    )

@@ -167,6 +167,21 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   local-only).
   `.github/workflows/sync-space.yml` added: force-push mirror of main → Space on every
   GitHub push (needs HF_TOKEN write token as a GitHub Actions repo secret).
+- **2026-07-05 PDF report export.** `POST /api/report` (same params/sources as analyze:
+  stem XOR file + die_mm/die_value/wafer_radius_mm) — implemented in `routers/analyze.py`
+  by calling `analyze()` directly, so it inherits the LRU cache, rate limit, 503/422/404
+  paths for free; returns application/pdf with Content-Disposition attachment. Rendering
+  in `scripts/api/report.py`: matplotlib PdfPages (no new deps), three light/print-themed
+  pages — (1) overview: wafer image with polygon overlays + legend (frontend overlay hex
+  palette), loss/yield/failed-dies/top-defect stats, what-if parameters, detections table,
+  ground truth; (2) yield analytics: radial fail-rate bars, zone-yield barh, yield-model
+  numbers, sinogram; (3) diagnosis: per-detection mechanism/action/process-steps/
+  kinematics, wrapped text with page-overflow guard. Frontend: "Export report" ghost
+  button (FaFilePdf) next to Upload in Detect toolbar, disabled until dataIsCurrent,
+  "Rendering…" while busy, downloads via object URL as waferdetect_<stem|filename>.pdf
+  (api.report/api.reportFile + requestBlob helper in api.ts). Verified: 127/127 pytest
+  (new tests/test_api_report.py incl. cache-hit sentinel test), ruff clean, npm build
+  green, real-model e2e on the demo combo wafer (222 KB PDF), pages visually reviewed.
 - 2026-07-05 Detect stale-wafer fix: picking a new wafer now immediately shows THAT
   wafer's raw image (waferImageUrl for stems — browser-cached from the gallery thumb;
   object URL for uploads, revoked on change) with the scan line and no overlays, instead
