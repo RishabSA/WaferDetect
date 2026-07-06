@@ -20,6 +20,10 @@ pinned: false
   the yield loss in dollars — from a model trained entirely on synthetic data.
 </p>
 
+<p align="center">
+  <img src="resources/WaferDetect_Demo.jpg" alt="WaferDetect dashboard showing wafer defect detections and analytics" width="900" />
+</p>
+
 ---
 
 ## Why wafer maps
