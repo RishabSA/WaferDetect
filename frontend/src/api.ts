@@ -191,6 +191,19 @@ export const api = {
 			body,
 		});
 	},
+	klarf: (stem: string, params: AnalyzeParams) =>
+		requestBlob(
+			`/api/klarf?stem=${encodeURIComponent(stem)}&${analyzeQuery(params)}`,
+			{ method: "POST" },
+		),
+	klarfFile: (file: File, params: AnalyzeParams) => {
+		const body = new FormData();
+		body.append("file", file);
+		return requestBlob(`/api/klarf?${analyzeQuery(params)}`, {
+			method: "POST",
+			body,
+		});
+	},
 	report: (stem: string, params: AnalyzeParams) =>
 		requestBlob(
 			`/api/report?stem=${encodeURIComponent(stem)}&${analyzeQuery(params)}`,

@@ -182,6 +182,36 @@ FUTURE   F1 spatial statistics (CSR, similarity, stacked maps)   F2 virtual fab 
   (api.report/api.reportFile + requestBlob helper in api.ts). Verified: 127/127 pytest
   (new tests/test_api_report.py incl. cache-hit sentinel test), ruff clean, npm build
   green, real-model e2e on the demo combo wafer (222 KB PDF), pages visually reviewed.
+- **2026-07-05 KLARF export.** `POST /api/klarf` (stem XOR file + die_mm/wafer_radius_mm)
+  returns the wafer's defects as a KLA KLARF v1.2 ASCII file (text/plain attachment,
+  waferdetect_<name>.klarf). Refactor: the validate/rate-limit/503/cache block of
+  `analyze()` was extracted into `resolve_artifacts()` (same file) because the KLARF
+  writer needs RAW dots — the analyze response's `dots` are display-subsampled and
+  image-normalized. Writer in `scripts/api/klarf.py`: mirrors the diegrid convention
+  (count=floor(2/die) cells, origin at die (0,0) lower-left ⇒ SampleCenterLocation =
+  span/2 in µm), y flipped once (dots are image-row y-down, KLARF is Cartesian),
+  per-dot records with XREL/YREL (µm within die) + XINDEX/YINDEX, CLASSNUMBER =
+  classes.txt index+1 (0 = unclassified) via ClassLookup block, CLUSTERNUMBER =
+  detection membership (matplotlib Path.contains_points on the xyn polygons in
+  image space, first match wins), nominal defect size from the rendered dot scale
+  (nominal_dot_px=3.6 over image_size, ≈1.74 mm at R=150), SampleTestPlan = all kept
+  die indices, SummaryList = NDEFECT/DEFDENSITY(cm²)/NDIE/NDEFDIE from failed_dies.
+  Frontend: "Export KLARF" ghost button (FaFileExport, tooltip) beside "Export report";
+  exporting state is now a "" | "pdf" | "klarf" union sharing one onExport(kind) handler.
+  Verified: 132/132 pytest (tests/test_api_klarf.py: coordinate/class/cluster math, cache
+  sentinel, 503/422), ruff + npm build clean, real-model e2e on the demo wafer (2054
+  defect rows), and **independent round-trip via the third-party klarfio parser (uvx,
+  not a dep)** — all columns/rows/summary parsed back correctly; sample at
+  /tmp/waferdetect_test.klarf. Future: KLARF ingest (idea #1) can reuse the same
+  conventions in reverse.
+- 2026-07-06 annotated-wafer PNG download: "Wafer PNG" ghost button (FaImage) in the
+  Detect toolbar, client-side only (no endpoint) — canvas render at 2× of data.image with
+  a circular clip (waferFrac 0.97 mirror of generator.wafer_frac, +2px to keep the drawn
+  outline; outside the disc = transparent) plus the detection polygons (same colors/order
+  as the SVG overlay; respects the visibility toggles, so hidden detections are excluded).
+  Shared downloadBlob() helper extracted (also used by PDF/KLARF exports). Downloads as
+  waferdetect_<stem>_detections.png (1280×1280). Geometry verified via a PIL replica of
+  the canvas math on the demo wafer (corner alpha 0, center 255).
 - 2026-07-05 Detect stale-wafer fix: picking a new wafer now immediately shows THAT
   wafer's raw image (waferImageUrl for stems — browser-cached from the gallery thumb;
   object URL for uploads, revoked on change) with the scan line and no overlays, instead

@@ -11,6 +11,7 @@ from ultralytics import YOLO
 
 from scripts.analytics.diagnosis import diagnose, kb_path, load_knowledge_base
 from scripts.analytics.diegrid import radial_yield, zone_yields
+from scripts.api.klarf import klarf_text
 from scripts.api.plots import image_png, sinogram_png
 from scripts.api.report import report_pdf
 from scripts.baselines.classical import dot_coordinates
@@ -120,14 +121,8 @@ def image_artifacts(image: Image.Image, model: YOLO) -> dict:
     }
 
 
-@router.post("/api/analyze")
-async def analyze(
-    request: Request,
-    stem: str = "",
-    die_mm: float = 6.0,
-    die_value: float = 25.0,
-    wafer_radius_mm: float = 150.0,
-    file: UploadFile | None = File(default=None),
+async def resolve_artifacts(
+    request: Request, stem: str, file: UploadFile | None
 ) -> dict:
     if bool(stem) == (file is not None):
         raise HTTPException(422, "Provide exactly one of stem or file")
@@ -157,17 +152,31 @@ async def analyze(
         key = hashlib.sha256(payload).hexdigest()
 
     # A hit skips image loading, dot extraction, YOLO, and both PNG renders —
-    # only the what-if analytics below are recomputed
+    # only the per-request analytics are recomputed
     if key in analysis_cache:
         analysis_cache.move_to_end(key)
-        artifacts = analysis_cache[key]
-    else:
-        source = image_path if stem else io.BytesIO(payload)
-        artifacts = image_artifacts(Image.open(source).convert("RGB"), model)
+        return analysis_cache[key]
 
-        analysis_cache[key] = artifacts
-        if len(analysis_cache) > cache_size:
-            analysis_cache.popitem(last=False)
+    source = image_path if stem else io.BytesIO(payload)
+    artifacts = image_artifacts(Image.open(source).convert("RGB"), model)
+
+    analysis_cache[key] = artifacts
+    if len(analysis_cache) > cache_size:
+        analysis_cache.popitem(last=False)
+
+    return artifacts
+
+
+@router.post("/api/analyze")
+async def analyze(
+    request: Request,
+    stem: str = "",
+    die_mm: float = 6.0,
+    die_value: float = 25.0,
+    wafer_radius_mm: float = 150.0,
+    file: UploadFile | None = File(default=None),
+) -> dict:
+    artifacts = await resolve_artifacts(request, stem, file)
 
     dots = artifacts["dots"]
     detections = artifacts["detections"]
@@ -227,5 +236,30 @@ async def report(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'attachment; filename="waferdetect_{name}.pdf"'
+        },
+    )
+
+
+@router.post("/api/klarf")
+async def klarf(
+    request: Request,
+    stem: str = "",
+    die_mm: float = 6.0,
+    wafer_radius_mm: float = 150.0,
+    file: UploadFile | None = File(default=None),
+) -> Response:
+    artifacts = await resolve_artifacts(request, stem, file)
+
+    names = load_class_names(classes_file)
+    name = stem or (file.filename if file and file.filename else "upload")
+    text = klarf_text(
+        artifacts["dots"], artifacts["detections"], names, name, die_mm, wafer_radius_mm
+    )
+
+    return Response(
+        content=text,
+        media_type="text/plain",
+        headers={
+            "Content-Disposition": f'attachment; filename="waferdetect_{name}.klarf"'
         },
     )

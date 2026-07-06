@@ -1,6 +1,12 @@
 import type { ChangeEvent, DragEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaFilePdf, FaInfoCircle, FaUpload } from "react-icons/fa";
+import {
+	FaFileExport,
+	FaFilePdf,
+	FaImage,
+	FaInfoCircle,
+	FaUpload,
+} from "react-icons/fa";
 import { Link, useSearchParams } from "react-router";
 import {
 	Bar,
@@ -41,6 +47,9 @@ import useDebounced from "../useDebounced";
 
 const demoStem = "0487_combo_random+edge_loc+comet";
 const galleryLimit = 14;
+// wafer disc fraction of the image — matches wafer_frac in scripts/datagen/generator.py
+const waferFrac = 0.97;
+const waferPngScale = 2;
 const waferPresets = [50, 75, 100, 150, 225];
 const dieMmMin = 3;
 const dieMmMax = 20;
@@ -56,6 +65,15 @@ type ViewKey = (typeof viewTabs)[number]["key"];
 
 const summaryTitle =
 	"cursor-pointer text-xs font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none marker:text-cyan-600 dark:text-neutral-200 dark:marker:text-cyan-400";
+
+const downloadBlob = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = filename;
+	link.click();
+	URL.revokeObjectURL(url);
+};
 
 // stepper-style alignment marks framing the wafer stage
 const stageBrackets = (
@@ -81,7 +99,7 @@ const Detect = () => {
 	const [dieValueInput, setDieValueInput] = useState("25");
 	const [dieValue, setDieValue] = useState(25);
 	const [showSinogramInfo, setShowSinogramInfo] = useState(false);
-	const [exporting, setExporting] = useState(false);
+	const [exporting, setExporting] = useState<"" | "pdf" | "klarf">("");
 	const [exportError, setExportError] = useState("");
 	const fileRef = useRef<HTMLInputElement>(null);
 	const isDark = useIsDark();
@@ -162,8 +180,8 @@ const Detect = () => {
 		}
 	};
 
-	const onExport = async () => {
-		setExporting(true);
+	const onExport = async (kind: "pdf" | "klarf") => {
+		setExporting(kind);
 		setExportError("");
 		try {
 			const params = {
@@ -171,21 +189,79 @@ const Detect = () => {
 				die_value: dieValueDebounced,
 				wafer_radius_mm: waferRadiusDebounced,
 			};
-			const blob = file
-				? await api.reportFile(file, params)
-				: await api.report(stem, params);
+			const exporters = {
+				pdf: () =>
+					file ? api.reportFile(file, params) : api.report(stem, params),
+				klarf: () =>
+					file ? api.klarfFile(file, params) : api.klarf(stem, params),
+			};
+			const blob = await exporters[kind]();
 
-			const url = URL.createObjectURL(blob);
-			const link = document.createElement("a");
-			link.href = url;
-			link.download = `waferdetect_${file ? file.name.replace(/\.[^.]+$/, "") : stem}.pdf`;
-			link.click();
-			URL.revokeObjectURL(url);
+			const base = file ? file.name.replace(/\.[^.]+$/, "") : stem;
+			downloadBlob(blob, `waferdetect_${base}.${kind}`);
 		} catch (cause) {
 			setExportError((cause as Error).message);
 		} finally {
-			setExporting(false);
+			setExporting("");
 		}
+	};
+
+	const onDownloadWafer = () => {
+		if (!data) {
+			return;
+		}
+
+		const image = new Image();
+		image.onload = () => {
+			const width = image.naturalWidth * waferPngScale;
+			const height = image.naturalHeight * waferPngScale;
+			const canvas = document.createElement("canvas");
+			canvas.width = width;
+			canvas.height = height;
+			const context = canvas.getContext("2d");
+			if (!context) {
+				return;
+			}
+
+			// Clip to the wafer disc (+2 px keeps the drawn outline); everything
+			// outside the circle stays transparent
+			const radius =
+				(Math.min(width, height) * waferFrac) / 2 + 2 * waferPngScale;
+			context.beginPath();
+			context.arc(width / 2, height / 2, radius, 0, Math.PI * 2);
+			context.clip();
+			context.drawImage(image, 0, 0, width, height);
+
+			for (const overlay of overlays) {
+				if (!overlay.visible || overlay.points.length < 3) {
+					continue;
+				}
+				context.beginPath();
+				overlay.points.forEach(([x, y], index) =>
+					index === 0
+						? context.moveTo(x * width, y * height)
+						: context.lineTo(x * width, y * height),
+				);
+				context.closePath();
+				context.fillStyle = overlay.color;
+				context.strokeStyle = overlay.color;
+				context.lineWidth = width * 0.005;
+				context.globalAlpha = 0.14;
+				context.fill();
+				context.globalAlpha = 1;
+				context.stroke();
+			}
+
+			canvas.toBlob(blob => {
+				if (blob) {
+					const base = file ? file.name.replace(/\.[^.]+$/, "") : stem;
+					downloadBlob(blob, `waferdetect_${base}_detections.png`);
+				}
+			}, "image/png");
+		};
+		image.onerror = () =>
+			setExportError("Could not decode the wafer image for PNG export");
+		image.src = png(data.image);
 	};
 
 	const onDieValue = (event: ChangeEvent<HTMLInputElement>) => {
@@ -265,12 +341,33 @@ const Detect = () => {
 						</div>
 						<div className="ml-auto flex items-center gap-2">
 							<button
-								onClick={onExport}
-								disabled={!data || !dataIsCurrent || exporting}
+								onClick={onDownloadWafer}
+								disabled={!data || !dataIsCurrent}
+								title="Download the annotated wafer as a PNG with a transparent background — visible detections only"
+								className={buttonGhost}>
+								<span className="flex items-center gap-2">
+									<FaImage size={12} />
+									Wafer PNG
+								</span>
+							</button>
+							<button
+								onClick={() => onExport("klarf")}
+								disabled={!data || !dataIsCurrent || exporting !== ""}
+								title="Export the detections as a KLARF defect file — the industry-standard format emitted by fab inspection tools"
+								className={buttonGhost}>
+								<span className="flex items-center gap-2">
+									<FaFileExport size={12} />
+									{exporting === "klarf" ? "Writing…" : "Export KLARF"}
+								</span>
+							</button>
+							<button
+								onClick={() => onExport("pdf")}
+								disabled={!data || !dataIsCurrent || exporting !== ""}
+								title="Download a PDF report of the full analysis"
 								className={buttonGhost}>
 								<span className="flex items-center gap-2">
 									<FaFilePdf size={12} />
-									{exporting ? "Rendering…" : "Export report"}
+									{exporting === "pdf" ? "Rendering…" : "Export report"}
 								</span>
 							</button>
 							<input

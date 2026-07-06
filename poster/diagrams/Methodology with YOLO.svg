@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 630" width="1000" height="630" font-family="Calibri, Arial, sans-serif">
+	<!-- Node 1: silicon wafer dataset -->
+	<rect x="10" y="16" width="222" height="340" rx="16" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<rect x="24" y="40" width="5" height="20" rx="2.5" fill="#22d3ee"/>
+	<text x="36" y="57" font-size="17" font-weight="700" fill="#16202e">Silicon wafer dataset</text>
+	<text x="24" y="88" font-size="14" fill="#55637a">580 labeled wafer maps</text>
+	<text x="24" y="108" font-size="14" fill="#55637a">21 defect pattern classes</text>
+	<circle cx="121" cy="210" r="72" fill="#dbe4ee" stroke="#8fa3bb" stroke-width="2.5"/>
+	<circle cx="121" cy="282" r="7" fill="#ffffff" stroke="#8fa3bb" stroke-width="2.5"/>
+	<g fill="#16202e">
+		<circle cx="80" cy="168" r="2.2"/>
+		<circle cx="93" cy="178" r="2.2"/>
+		<circle cx="106" cy="188" r="2.2"/>
+		<circle cx="119" cy="198" r="2.2"/>
+		<circle cx="132" cy="208" r="2.2"/>
+		<circle cx="145" cy="218" r="2.2"/>
+		<circle cx="158" cy="228" r="2.2"/>
+		<circle cx="101" cy="151" r="2.2"/>
+		<circle cx="148" cy="163" r="2.2"/>
+		<circle cx="163" cy="196" r="2.2"/>
+		<circle cx="139" cy="183" r="2.2"/>
+		<circle cx="89" cy="235" r="2.2"/>
+		<circle cx="150" cy="247" r="2.2"/>
+		<circle cx="121" cy="258" r="2.2"/>
+		<circle cx="173" cy="232" r="2.2"/>
+		<circle cx="78" cy="206" r="2.2"/>
+		<circle cx="135" cy="140" r="2.2"/>
+	</g>
+	<text x="121" y="322" font-size="13" fill="#8794a6" text-anchor="middle">black dots = failing dies</text>
+
+	<!-- arrow 1 -->
+	<rect x="233" y="181" width="15" height="10" fill="#0e7490"/>
+	<polygon points="248,172 262,186 248,200" fill="#0e7490"/>
+
+	<!-- Node 2: YOLO26-seg (zoomed below) -->
+	<rect x="262" y="16" width="222" height="340" rx="16" fill="#ffffff" stroke="#7cc0d4" stroke-width="2"/>
+	<rect x="276" y="40" width="5" height="20" rx="2.5" fill="#22d3ee"/>
+	<text x="288" y="57" font-size="17" font-weight="700" fill="#16202e">YOLO26-seg detection</text>
+	<text x="276" y="88" font-size="14" fill="#55637a">one pass finds, classifies</text>
+	<text x="276" y="108" font-size="14" fill="#55637a">&amp; outlines all defects</text>
+	<circle cx="373" cy="210" r="72" fill="#f0f4f8" stroke="#8fa3bb" stroke-width="2.5"/>
+	<polygon points="318,182 338,161 359,171 354,200 333,218 315,205" fill="#ef4444" fill-opacity="0.14" stroke="#ef4444" stroke-width="2.5"/>
+	<polygon points="385,236 410,220 434,231 428,256 400,267" fill="#0891b2" fill-opacity="0.14" stroke="#0891b2" stroke-width="2.5"/>
+	<circle cx="334" cy="188" r="2.2" fill="#16202e"/>
+	<circle cx="341" cy="200" r="2.2" fill="#16202e"/>
+	<circle cx="329" cy="205" r="2.2" fill="#16202e"/>
+	<circle cx="409" cy="240" r="2.2" fill="#16202e"/>
+	<circle cx="417" cy="249" r="2.2" fill="#16202e"/>
+	<circle cx="379" cy="171" r="2.2" fill="#16202e"/>
+	<circle cx="395" cy="192" r="2.2" fill="#16202e"/>
+	<text x="373" y="322" font-size="13" fill="#8794a6" text-anchor="middle">a polygon mask per defect</text>
+
+	<!-- arrow 2 -->
+	<rect x="485" y="181" width="15" height="10" fill="#0e7490"/>
+	<polygon points="500,172 514,186 500,200" fill="#0e7490"/>
+
+	<!-- Node 3: root-cause diagnosis -->
+	<rect x="514" y="16" width="222" height="340" rx="16" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<rect x="528" y="40" width="5" height="20" rx="2.5" fill="#22d3ee"/>
+	<text x="540" y="57" font-size="17" font-weight="700" fill="#16202e">Root-cause diagnosis</text>
+	<text x="528" y="88" font-size="14" fill="#55637a">knowledge base + scratch</text>
+	<text x="528" y="108" font-size="14" fill="#55637a">kinematics per detection</text>
+	<rect x="545" y="146" width="160" height="34" rx="8" fill="#eef4f9" stroke="#b9c9d8"/>
+	<text x="625" y="168" font-size="14" fill="#24435c" text-anchor="middle">failure pattern</text>
+	<polygon points="617,188 633,188 625,201" fill="#0e7490"/>
+	<rect x="545" y="210" width="160" height="34" rx="8" fill="#e2ecf4" stroke="#b9c9d8"/>
+	<text x="625" y="232" font-size="14" fill="#24435c" text-anchor="middle">physical mechanism</text>
+	<polygon points="617,252 633,252 625,265" fill="#0e7490"/>
+	<rect x="545" y="274" width="160" height="34" rx="8" fill="#dcf3f7" stroke="#8ecbd8"/>
+	<text x="625" y="296" font-size="14" fill="#0e7490" text-anchor="middle">tool + action</text>
+
+	<!-- arrow 3 -->
+	<rect x="737" y="181" width="15" height="10" fill="#0e7490"/>
+	<polygon points="752,172 766,186 752,200" fill="#0e7490"/>
+
+	<!-- Node 4: yield & economics -->
+	<rect x="766" y="16" width="222" height="340" rx="16" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<rect x="780" y="40" width="5" height="20" rx="2.5" fill="#22d3ee"/>
+	<text x="792" y="57" font-size="17" font-weight="700" fill="#16202e">Yield &amp; economics</text>
+	<text x="780" y="88" font-size="14" fill="#55637a">die grid + yield model →</text>
+	<text x="780" y="108" font-size="14" fill="#55637a">dollars lost per defect</text>
+	<text x="824" y="262" font-size="56" font-weight="700" fill="#059669" text-anchor="middle">$</text>
+	<rect x="852" y="218" width="22" height="44" fill="#0e7490"/>
+	<rect x="884" y="192" width="22" height="70" fill="#0e7490"/>
+	<rect x="916" y="166" width="22" height="96" fill="#0e7490"/>
+	<line x1="840" y1="262" x2="946" y2="262" stroke="#8fa3bb" stroke-width="2"/>
+	<text x="877" y="322" font-size="13" fill="#8794a6" text-anchor="middle">loss attribution per root cause</text>
+
+	<!-- zoom guides from node 2 into the inset -->
+	<line x1="262" y1="356" x2="10" y2="396" stroke="#9db1c4" stroke-width="1.5" stroke-dasharray="7 6"/>
+	<line x1="484" y1="356" x2="990" y2="396" stroke="#9db1c4" stroke-width="1.5" stroke-dasharray="7 6"/>
+
+	<!-- inset strip -->
+	<rect x="10" y="396" width="980" height="210" rx="14" fill="#f7fafc" stroke="#9db1c4" stroke-width="1.5" stroke-dasharray="9 7"/>
+	<rect x="30" y="414" width="5" height="18" rx="2.5" fill="#22d3ee"/>
+	<text x="44" y="429" font-size="14.5" font-weight="700" fill="#0e7490" letter-spacing="1.5">INSIDE YOLO26-SEG</text>
+
+	<!-- mini 1: wafer image -->
+	<rect x="30" y="448" width="170" height="136" rx="12" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<circle cx="115" cy="486" r="17" fill="#dbe4ee" stroke="#8fa3bb" stroke-width="2"/>
+	<text x="115" y="548" font-size="15" font-weight="700" fill="#16202e" text-anchor="middle">Wafer image</text>
+	<text x="115" y="570" font-size="12.5" fill="#8794a6" text-anchor="middle">640 × 640 map</text>
+
+	<rect x="201" y="511" width="10" height="9" fill="#0e7490"/>
+	<polygon points="211,505 221,515.5 211,526" fill="#0e7490"/>
+
+	<!-- mini 2: feature extraction -->
+	<rect x="222" y="448" width="170" height="136" rx="12" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<g>
+		<rect x="289" y="468" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="302" y="468" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="315" y="468" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="289" y="481" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="302" y="481" width="10" height="10" fill="#0e7490"/>
+		<rect x="315" y="481" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="289" y="494" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="302" y="494" width="10" height="10" fill="#7fb4c9"/>
+		<rect x="315" y="494" width="10" height="10" fill="#7fb4c9"/>
+	</g>
+	<text x="307" y="548" font-size="15" font-weight="700" fill="#16202e" text-anchor="middle">Feature extraction</text>
+	<text x="307" y="570" font-size="12.5" fill="#8794a6" text-anchor="middle">convolutional backbone</text>
+
+	<rect x="393" y="511" width="10" height="9" fill="#0e7490"/>
+	<polygon points="403,505 413,515.5 403,526" fill="#0e7490"/>
+
+	<!-- mini 3: multi-scale features -->
+	<rect x="414" y="448" width="170" height="136" rx="12" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<rect x="473" y="466" width="52" height="8" rx="4" fill="#0e7490"/>
+	<rect x="481" y="480" width="36" height="8" rx="4" fill="#2596ad"/>
+	<rect x="489" y="494" width="20" height="8" rx="4" fill="#7fb4c9"/>
+	<text x="499" y="548" font-size="15" font-weight="700" fill="#16202e" text-anchor="middle">Multi-scale features</text>
+	<text x="499" y="570" font-size="12.5" fill="#8794a6" text-anchor="middle">small ↔ large defects</text>
+
+	<rect x="585" y="511" width="10" height="9" fill="#0e7490"/>
+	<polygon points="595,505 605,515.5 595,526" fill="#0e7490"/>
+
+	<!-- mini 4: parallel heads -->
+	<rect x="606" y="448" width="170" height="136" rx="12" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<rect x="663" y="466" width="56" height="14" rx="5" fill="#0e7490"/>
+	<rect x="663" y="488" width="56" height="14" rx="5" fill="#22d3ee"/>
+	<text x="691" y="548" font-size="15" font-weight="700" fill="#16202e" text-anchor="middle">Two parallel heads</text>
+	<text x="691" y="570" font-size="12.5" fill="#8794a6" text-anchor="middle">class + box · pixel mask</text>
+
+	<rect x="777" y="511" width="10" height="9" fill="#0e7490"/>
+	<polygon points="787,505 797,515.5 787,526" fill="#0e7490"/>
+
+	<!-- mini 5: outlined defects -->
+	<rect x="798" y="448" width="170" height="136" rx="12" fill="#ffffff" stroke="#c3ced9" stroke-width="1.5"/>
+	<circle cx="883" cy="486" r="17" fill="#dbe4ee" stroke="#8fa3bb" stroke-width="2"/>
+	<polygon points="871,481 882,474 889,482 886,492 874,491" fill="#ef4444" fill-opacity="0.2" stroke="#ef4444" stroke-width="2"/>
+	<text x="883" y="548" font-size="15" font-weight="700" fill="#16202e" text-anchor="middle">Outlined defects</text>
+	<text x="883" y="570" font-size="12.5" fill="#8794a6" text-anchor="middle">polygon per defect</text>
+</svg>
