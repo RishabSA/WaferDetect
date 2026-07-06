@@ -9,7 +9,7 @@ pinned: false
 ---
 
 <p align="center">
-  <img src="frontend/public/assets/icon.svg" alt="WaferDetect icon" width="110" />
+  <img src="resources/WaferDetect_Icon.svg" alt="WaferDetect icon" width="110" />
 </p>
 
 <h1 align="center">WaferDetect</h1>
@@ -18,6 +18,10 @@ pinned: false
   <strong>Wafer-map defect intelligence for semiconductor fabs</strong><br />
   Detect and segment failure patterns, diagnose their root causes, and quantify
   the yield loss in dollars — from a model trained entirely on synthetic data.
+</p>
+
+<p align="center">
+  <img src="poster/Rishab%20Alagharu%20-%20WaferDetect%20GHP%2063%20CS%20Poster.jpeg" alt="WaferDetect GHP 63 computer science poster" width="900" />
 </p>
 
 <p align="center">
