@@ -392,37 +392,37 @@ const Detect = () => {
 					</div>
 
 					<div className="flex flex-wrap items-center justify-end gap-2">
-							<button
-								onClick={onDownloadWafer}
-								disabled={!data || !dataIsCurrent}
-								title="Download the annotated wafer as a PNG with a transparent background — visible detections only"
-								className={buttonGhost}>
-								<span className="flex items-center gap-2">
-									<FaImage size={12} />
-									Export detections
-								</span>
-							</button>
-							<button
-								onClick={() => onExport("klarf")}
-								disabled={!data || !dataIsCurrent || exporting !== ""}
-								title="Export the detections as a KLARF defect file — the industry-standard format emitted by fab inspection tools"
-								className={buttonGhost}>
-								<span className="flex items-center gap-2">
-									<FaFileExport size={12} />
-									{exporting === "klarf" ? "Writing…" : "Export KLARF"}
-								</span>
-							</button>
-							<button
-								onClick={() => onExport("pdf")}
-								disabled={!data || !dataIsCurrent || exporting !== ""}
-								title="Download a PDF report of the full analysis"
-								className={buttonGhost}>
-								<span className="flex items-center gap-2">
-									<FaFilePdf size={12} />
-									{exporting === "pdf" ? "Rendering…" : "Export report"}
-								</span>
-							</button>
-						</div>
+						<button
+							onClick={onDownloadWafer}
+							disabled={!data || !dataIsCurrent}
+							title="Download the annotated wafer as a PNG with a transparent background — visible detections only"
+							className={buttonGhost}>
+							<span className="flex items-center gap-2">
+								<FaImage size={12} />
+								Export detections
+							</span>
+						</button>
+						<button
+							onClick={() => onExport("klarf")}
+							disabled={!data || !dataIsCurrent || exporting !== ""}
+							title="Export the detections as a KLARF defect file — the industry-standard format emitted by fab inspection tools"
+							className={buttonGhost}>
+							<span className="flex items-center gap-2">
+								<FaFileExport size={12} />
+								{exporting === "klarf" ? "Writing…" : "Export KLARF"}
+							</span>
+						</button>
+						<button
+							onClick={() => onExport("pdf")}
+							disabled={!data || !dataIsCurrent || exporting !== ""}
+							title="Download a PDF report of the full analysis"
+							className={buttonGhost}>
+							<span className="flex items-center gap-2">
+								<FaFilePdf size={12} />
+								{exporting === "pdf" ? "Rendering…" : "Export report"}
+							</span>
+						</button>
+					</div>
 
 					<div
 						onDragOver={(event: DragEvent<HTMLDivElement>) =>
