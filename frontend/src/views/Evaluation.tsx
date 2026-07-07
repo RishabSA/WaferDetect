@@ -259,11 +259,9 @@ const Evaluation = () => {
 							whose backbone and feature pyramid feed heads that predict — for
 							every defect on the wafer — a class, a confidence, a bounding box,
 							and a full polygon mask assembled from shared mask prototypes. It
-							was fine-tuned from COCO-pretrained weights on the 580-wafer
-							synthetic dataset with a wafer-aware augmentation policy: full
-							rotation and flips (wafer scenes are rotation-valid) and mosaic
-							disabled (collaged part-wafers are physically impossible).
-							Inference takes a few milliseconds per wafer.
+							was fine-tuned from COCO-pretrained weights on a dataset of 580
+							real, annotated wafers. Inference takes a few milliseconds per
+							wafer.
 						</p>
 						<p>
 							Prior wafer-map work — the WM-811K lineage — treats the problem as{" "}

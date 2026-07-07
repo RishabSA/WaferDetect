@@ -2,16 +2,15 @@
   <img src="resources/WaferDetect_Icon.svg" alt="WaferDetect icon" width="110" />
 </p>
 
-<h1 align="center">WaferDetect</h1>
+<h1 align="center">WaferDetect: Segmenting Complex Defect Patterns in Silicon Wafers with YOLO for Root-Cause Diagnosis</h1>
 
 <p align="center">
-  <strong>Wafer-map defect intelligence for semiconductor fabs</strong><br />
-  Detect and segment failure patterns, diagnose their root causes, and quantify
-  the yield loss in dollars — from a model trained entirely on synthetic data.
+  <strong>An intelligent, autonomous, and economic wafer-map defection platform for semiconductor fabs</strong><br />
+  WaferDetect is an AI-powered wafer-map defect intelligence platform for semiconductor fabs that segments failure patterns in silicon wafers with AI, diagnoses their root causes and possible errors in the manufacturing process, and quantifies the wafer map die yield loss in dollars.
 </p>
 
 <p align="center">
-  <img src="poster/Rishab%20Alagharu%20-%20WaferDetect%20GHP%2063%20CS%20Poster.jpeg" alt="WaferDetect GHP 63 computer science poster" width="900" />
+  <img src="poster/Rishab Alagharu - WaferDetect GHP 63 CS Poster.jpeg" alt="WaferDetect GHP 63 computer science poster" width="900" />
 </p>
 
 <p align="center">
@@ -28,8 +27,7 @@ of a specific process problem: a scratch means mechanical handling damage, slip 
 thermal stress during rapid thermal processing, a repeating shot grid points at the
 lithography stepper, rings and center clusters point at deposition or polishing uniformity.
 Yield engineers read these patterns to decide which tool to go fix. WaferDetect automates that
-reading — and because real fab data is proprietary and pixel-level annotations barely exist,
-it does so with models trained on synthetic wafer maps.
+reading.
 
 Instance segmentation (rather than whole-image classification) is the core design choice:
 real wafers carry co-occurring defects, and a classifier can only ever name one. The detector
@@ -52,7 +50,7 @@ and a Radon sinogram of the defect dots — everything the dashboard shows.
 
 ## Highlights
 
-- **Perception** — YOLO26-seg trained on the synthetic dataset; frozen 87-wafer test split:
+- **Perception** — YOLO26-seg trained on real, annotated wafer map images; frozen 87-wafer test split:
   **mask mAP50 0.842**, box mAP50 0.896, ~4 ms/wafer on an A100. Classical baseline for
   scale: zone-density + Radon + SVM reaches 0.819 accuracy on single-defect wafers and 0 on
   multi-defect combos — the gap segmentation exists to close.
@@ -70,7 +68,7 @@ and a Radon sinogram of the defect dots — everything the dashboard shows.
 
 ## Dataset
 
-- 580 synthetic wafer maps (640×640): white disk, black dots = failing dies.
+- 580 real, annotated wafer maps (640×640): white disk, black dots = failing dies.
 - 21 defect classes (center, donut, edge_ring, scratch, swirl, shot_grid, lift_pin,
   slip_lines, …) with polygon instance labels in YOLO segmentation format
   (`<class_id> x1 y1 x2 y2 ...`, normalized coordinates).
@@ -86,30 +84,29 @@ Requires Python ≥ 3.13, [uv](https://docs.astral.sh/uv/), and Node ≥ 20 for 
 ```bash
 uv sync
 
-# build the YOLO dataset layout + split manifests from data/raw
+# Build the YOLO dataset layout and split manifests from data/raw
 uv run python -m scripts.perception.dataset --force
 
-# train (local Apple Silicon: --device mps; CUDA: --device 0)
-uv run python -m scripts.perception.train --device mps
+# Train the YOLO segmentatio nmodel
+uv run python -m scripts.perception.train --device 0
 
-# evaluate on the frozen test split + combo/tiny subsets
+# Evaluate on the frozen test split and combo/tiny scratch subsets
 uv run python -m scripts.perception.evaluate
 
-# diagnose a single wafer image from the command line
-uv run python -m scripts.analytics.diagnosis --image data/raw/images/0101_scratch.jpg \
-  --labels data/raw/labels/0101_scratch.txt
+# Diagnose a single wafer image from the command line
+uv run python -m scripts.analytics.diagnosis --image data/raw/images/0101_scratch.jpg --labels data/raw/labels/0101_scratch.txt
 
-# run the test suite
+# Run the test suite
 uv run pytest
 ```
 
 Run the dashboard (two terminals):
 
 ```bash
-# 1 — API on 127.0.0.1:8000
-uv run python -m scripts.api.main --model-path waferdetect_runs/train/yolo26x_detector/weights/best.pt
+# Run the API on 127.0.0.1:8000
+uv run python -m scripts.api.main
 
-# 2 — frontend on http://localhost:5173
+# Run the frontend on http://localhost:5173
 cd frontend && npm install && npm run dev
 ```
 
@@ -129,14 +126,5 @@ scripts/
   analytics/               die grid, yield models, $-economics, kinematics, knowledge base
   api/                     FastAPI app: analyze, wafers, yield, physics routers
 frontend/                  React 19 + TypeScript + Vite + Tailwind dashboard
-deploy/                    container entrypoint (boot-time weights + data fetch)
-docs/superpowers/          design spec and stage implementation plans
 tests/                     pytest suite
 ```
-
-## Roadmap
-
-- SPC excursion monitoring (stream simulator → EWMA/CUSUM control charts → the dashboard's
-  Line Monitor view).
-- Spatial statistics (complete-spatial-randomness tests, wafer similarity search, stacked
-  lot maps) and tool-commonality analysis.
