@@ -95,9 +95,8 @@ def dot_sinogram(dots: np.ndarray) -> np.ndarray:
 def image_artifacts(
     image: Image.Image, model: YOLO, dots: np.ndarray | None = None
 ) -> dict:
-    # Everything derived from the image alone — independent of the what-if
-    # parameters. A KLARF ingest passes its exact dot set instead of
-    # re-extracting pixel centers from the rendered image.
+    # Everything derived from the image alone, so it is independent of the what-if parameters
+    # A KLARF ingest passes its exact dot set instead of re-extracting pixel centers from the rendered image
     if dots is None:
         dots = dot_coordinates(np.asarray(image.convert("L")))
     names = load_class_names(classes_file)
@@ -156,15 +155,13 @@ async def resolve_artifacts(
             )
         key = hashlib.sha256(payload).hexdigest()
 
-    # A hit skips image loading, dot extraction, YOLO, and both PNG renders —
-    # only the per-request analytics are recomputed
+    # A hit skips image loading, dot extraction, YOLO, and both PNG renders, only the per-request analytics are recomputed
     if key in analysis_cache:
         analysis_cache.move_to_end(key)
         return analysis_cache[key]
 
     if not stem and is_klarf(payload):
-        # KLARF ingest: rebuild the wafer map from the defect list, then run
-        # the normal pipeline on the rendered image
+        # KLARF ingest: rebuild the wafer map from the defect list, then run the normal pipeline on the rendered image
         try:
             parsed = parse_klarf(payload.decode())
         except (ValueError, IndexError) as error:
