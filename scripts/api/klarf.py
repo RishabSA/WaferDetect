@@ -5,7 +5,7 @@ from matplotlib.path import Path as PolygonPath
 from scripts.analytics.diegrid import die_centers, failed_dies
 from scripts.datagen.generator import image_size, wafer_frac
 
-# GEnerator renders failing-die dots at 1.2-2.4 px radius on the wafer map, so exported point defects get this nominal footprint scaled to physical units
+# Generator renders failing-die dots at 1.2-2.4 px radius on the wafer map, so exported point defects get this nominal footprint scaled to physical units
 nominal_dot_px = 3.6
 
 
