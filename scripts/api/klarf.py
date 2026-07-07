@@ -19,9 +19,7 @@ def is_klarf(payload: bytes) -> bool:
 
 
 def render_dots(dots: np.ndarray) -> Image.Image:
-    # dot_coordinates extracts one dot per dark pixel, and the exporter writes
-    # one KLARF row per dot — so the faithful inverse paints single pixels,
-    # not the generator's multi-pixel discs (which would fuse into blobs)
+    # dot_coordinates extracts one dot per dark pixel, and the exporter writes one KLARF row per dot, so the faithful inverse paints single pixels, not the generator's multi-pixel discs (which would fuse into blobs)
     image = Image.new("L", (image_size, image_size), 255)
     draw = ImageDraw.Draw(image)
 
@@ -30,7 +28,7 @@ def render_dots(dots: np.ndarray) -> Image.Image:
         [margin, margin, image_size - margin, image_size - margin], outline=0, width=2
     )
 
-    # invert dot_coordinates' pixel-to-wafer mapping exactly
+    # Invert dot_coordinates' pixel-to-wafer mapping exactly
     x = np.rint((dots[:, 0] * wafer_frac + 1) / 2 * (image_size - 1)).astype(int)
     y = np.rint((dots[:, 1] * wafer_frac + 1) / 2 * (image_size - 1)).astype(int)
     draw.point(list(zip(x.tolist(), y.tolist(), strict=True)), fill=0)
@@ -39,9 +37,7 @@ def render_dots(dots: np.ndarray) -> Image.Image:
 
 
 def parse_klarf(text: str) -> dict:
-    # KLARF records are ";"-terminated token lists; multi-line records
-    # (ClassLookup, DefectList) flatten under the same key. For multi-test
-    # files only the last record of each kind is kept.
+    # KLARF records are ";"-terminated token lists; multi-line records (ClassLookup, DefectList) flatten under the same key. For multi-test files only the last record of each kind is kept.
     records = [record.split() for record in text.split(";") if record.split()]
     fields = {record[0]: record[1:] for record in records}
 
@@ -53,8 +49,7 @@ def parse_klarf(text: str) -> dict:
     die_mm = float(required("DiePitch")[0]) / 1000
     wafer_radius_mm = float(required("SampleSize")[1]) / 2
 
-    # Invert the export convention: SampleCenterLocation is the wafer center
-    # measured in µm from the lower-left corner of die (0, 0)
+    # Invert the export convention: SampleCenterLocation is the wafer center easured in µm from the lower-left corner of die (0, 0)
     center = required("SampleCenterLocation")
     origin_x_mm = -float(center[0]) / 1000
     origin_y_mm = -float(center[1]) / 1000
@@ -83,13 +78,13 @@ def parse_klarf(text: str) -> dict:
         + rows[:, columns.index("YREL")] / 1000
     )
 
-    # KLARF y is Cartesian (up); wafer dots use the image convention (y down)
+    # KLARF uses cartesian, so y is up, while wafer dots use y is down
     dots = np.stack([x_mm, -y_mm], axis=1) / wafer_radius_mm  # shape: (n, 2)
     radius = np.hypot(dots[:, 0], dots[:, 1])
     outside = radius > 0.99
     dots[outside] = dots[outside] / radius[outside, None] * 0.99
 
-    classes: list[str] = []
+    classes = []
     lookup_tokens = fields.get("ClassLookup", [])
     if "CLASSNUMBER" in columns and lookup_tokens:
         lookup = {
@@ -121,7 +116,7 @@ def cluster_assignments(dots: np.ndarray, detections: list) -> np.ndarray:
     if len(dots) == 0:
         return clusters
 
-    # polygons are in image-normalized coordinates (y down), so map dots there
+    # Polygons are in image-normalized coordinates (y down), so map dots there
     points = (dots * wafer_frac + 1) / 2  # shape: (n, 2)
     for index, (_, _, polygon) in enumerate(detections):
         inside = PolygonPath(polygon).contains_points(points)
@@ -141,14 +136,13 @@ def klarf_text(
     timestamp = datetime.now().strftime("%m-%d-%y %H:%M:%S")
     pitch_um = die_mm * 1000
 
-    # Mirror the diegrid convention: count cells spanning the wafer, origin at
-    # the lower-left corner of die (0, 0)
+    # Mirror the diegrid convention: count cells spanning the wafer, origin at the lower-left corner of die (0, 0)
     die = die_mm / wafer_radius_mm
     count = int(np.floor(2.0 / die))
     span = count * die
     origin_mm = -span / 2 * wafer_radius_mm
 
-    # KLARF coordinates are Cartesian (y up); dot v comes from image rows (y down)
+    # KLARF uses cartesian, so y is up, while dot v comes from images rows, so y is down
     x_mm = dots[:, 0] * wafer_radius_mm if len(dots) else np.zeros(0)
     y_mm = -dots[:, 1] * wafer_radius_mm if len(dots) else np.zeros(0)
 
