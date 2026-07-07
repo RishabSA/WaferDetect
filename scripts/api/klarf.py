@@ -1,6 +1,7 @@
 from datetime import datetime
 import numpy as np
 from matplotlib.path import Path as PolygonPath
+from PIL import Image, ImageDraw
 
 from scripts.analytics.diegrid import die_centers, failed_dies
 from scripts.datagen.generator import image_size, wafer_frac
@@ -11,6 +12,108 @@ nominal_dot_px = 3.6
 
 def defect_size_um(wafer_radius_mm: float) -> float:
     return nominal_dot_px / image_size * (2 * wafer_radius_mm * 1000 / wafer_frac)
+
+
+def is_klarf(payload: bytes) -> bool:
+    return payload.lstrip().startswith(b"FileVersion")
+
+
+def render_dots(dots: np.ndarray) -> Image.Image:
+    # dot_coordinates extracts one dot per dark pixel, and the exporter writes
+    # one KLARF row per dot — so the faithful inverse paints single pixels,
+    # not the generator's multi-pixel discs (which would fuse into blobs)
+    image = Image.new("L", (image_size, image_size), 255)
+    draw = ImageDraw.Draw(image)
+
+    margin = image_size * (1 - wafer_frac) / 2
+    draw.ellipse(
+        [margin, margin, image_size - margin, image_size - margin], outline=0, width=2
+    )
+
+    # invert dot_coordinates' pixel-to-wafer mapping exactly
+    x = np.rint((dots[:, 0] * wafer_frac + 1) / 2 * (image_size - 1)).astype(int)
+    y = np.rint((dots[:, 1] * wafer_frac + 1) / 2 * (image_size - 1)).astype(int)
+    draw.point(list(zip(x.tolist(), y.tolist(), strict=True)), fill=0)
+
+    return image
+
+
+def parse_klarf(text: str) -> dict:
+    # KLARF records are ";"-terminated token lists; multi-line records
+    # (ClassLookup, DefectList) flatten under the same key. For multi-test
+    # files only the last record of each kind is kept.
+    records = [record.split() for record in text.split(";") if record.split()]
+    fields = {record[0]: record[1:] for record in records}
+
+    def required(key: str) -> list[str]:
+        if key not in fields:
+            raise ValueError(f"missing the {key} record")
+        return fields[key]
+
+    die_mm = float(required("DiePitch")[0]) / 1000
+    wafer_radius_mm = float(required("SampleSize")[1]) / 2
+
+    # Invert the export convention: SampleCenterLocation is the wafer center
+    # measured in µm from the lower-left corner of die (0, 0)
+    center = required("SampleCenterLocation")
+    origin_x_mm = -float(center[0]) / 1000
+    origin_y_mm = -float(center[1]) / 1000
+
+    spec = required("DefectRecordSpec")
+    columns = spec[1 : 1 + int(spec[0])]
+    for name in ("XREL", "YREL", "XINDEX", "YINDEX"):
+        if name not in columns:
+            raise ValueError(f"DefectRecordSpec is missing the {name} column")
+
+    tokens = fields.get("DefectList", [])
+    rows = (
+        np.array(tokens, dtype=float).reshape(-1, len(columns))
+        if tokens
+        else np.zeros((0, len(columns)))
+    )
+
+    x_mm = (
+        origin_x_mm
+        + rows[:, columns.index("XINDEX")] * die_mm
+        + rows[:, columns.index("XREL")] / 1000
+    )
+    y_mm = (
+        origin_y_mm
+        + rows[:, columns.index("YINDEX")] * die_mm
+        + rows[:, columns.index("YREL")] / 1000
+    )
+
+    # KLARF y is Cartesian (up); wafer dots use the image convention (y down)
+    dots = np.stack([x_mm, -y_mm], axis=1) / wafer_radius_mm  # shape: (n, 2)
+    radius = np.hypot(dots[:, 0], dots[:, 1])
+    outside = radius > 0.99
+    dots[outside] = dots[outside] / radius[outside, None] * 0.99
+
+    classes: list[str] = []
+    lookup_tokens = fields.get("ClassLookup", [])
+    if "CLASSNUMBER" in columns and lookup_tokens:
+        lookup = {
+            int(number): name.strip('"')
+            for number, name in zip(
+                lookup_tokens[1::2], lookup_tokens[2::2], strict=True
+            )
+        }
+        numbers = rows[:, columns.index("CLASSNUMBER")].astype(int)
+        classes = [
+            lookup[number]
+            for number in dict.fromkeys(numbers.tolist())
+            if number != 0 and number in lookup
+        ]
+
+    wafer_id = " ".join(fields.get("WaferID", ["upload"])).strip('"')
+
+    return {
+        "dots": dots,
+        "die_mm": die_mm,
+        "wafer_radius_mm": wafer_radius_mm,
+        "wafer_id": wafer_id,
+        "classes": classes,
+    }
 
 
 def cluster_assignments(dots: np.ndarray, detections: list) -> np.ndarray:

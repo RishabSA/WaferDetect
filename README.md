@@ -56,7 +56,9 @@ steps, recommended action, scratch kinematics verdicts), the wafer yield summary
 dies, defect density D0, cluster factor α), the dollar loss attributed to each defect region,
 and a Radon sinogram of the defect dots — everything the dashboard shows. From the same
 analysis the dashboard also exports a KLARF defect file, a multi-page PDF diagnosis report,
-and a transparent-background PNG of the annotated wafer.
+and a transparent-background PNG of the annotated wafer. KLARF works in both directions:
+upload a KLARF file and its defect list is rebuilt into a wafer map and run through the
+same pipeline, so WaferDetect can operate directly on fab inspection-tool output.
 
 ## Highlights
 
@@ -73,7 +75,8 @@ and a transparent-background PNG of the annotated wafer.
   entry bearing), and a 21-class root-cause knowledge base.
 - **Dashboard** — FastAPI backend + React 19/TypeScript/Tailwind frontend: a Detect home
   view (upload or browse, detection overlays, defect-dot and sinogram views, inline
-  diagnosis report, KLARF / PDF-report / wafer-PNG export), Wafer Explorer, Yield
+  diagnosis report, KLARF ingest + export, PDF-report and wafer-PNG export), Wafer
+  Explorer, Yield
   Analytics with a fleet-wide Pareto of loss by process step, and the interactive
   Physics Lab.
 
@@ -107,37 +110,37 @@ For each silicon wafer map image in the frozen test split (87 wafers, containing
 - 12 of 21 classes at ≥ 0.995 mask AP50; known hard case: the thin, non-convex swirl
   (0.042 mask AP50).
 
-| Split | Box mAP50 | Mask mAP50 | Box mAP50-95 | Mask mAP50-95 |
-|---|---|---|---|---|
-| Full test (87 wafers, all 21 classes) | 0.909 | 0.852 | 0.741 | 0.632 |
-| Combo (multi-defect wafers) | 0.782 | 0.686 | 0.607 | 0.419 |
-| Tiny edge scratches | 0.995 | 0.995 | 0.524 | 0.565 |
+| Split                                 | Box mAP50 | Mask mAP50 | Box mAP50-95 | Mask mAP50-95 |
+| ------------------------------------- | --------- | ---------- | ------------ | ------------- |
+| Full test (87 wafers, all 21 classes) | 0.909     | 0.852      | 0.741        | 0.632         |
+| Combo (multi-defect wafers)           | 0.782     | 0.686      | 0.607        | 0.419         |
+| Tiny edge scratches                   | 0.995     | 0.995      | 0.524        | 0.565         |
 
 Per-class results on the full test split:
 
-| Class | Box AP50 | Mask AP50 | Box AP50-95 | Mask AP50-95 |
-|---|---|---|---|---|
-| center | 0.795 | 0.795 | 0.662 | 0.637 |
-| donut | 0.855 | 0.596 | 0.783 | 0.495 |
-| edge_ring | 0.995 | 0.995 | 0.895 | 0.544 |
-| edge_loc | 0.912 | 0.912 | 0.746 | 0.770 |
-| scratch | 0.995 | 0.995 | 0.864 | 0.821 |
-| random | 0.816 | 0.745 | 0.809 | 0.745 |
-| loc | 0.715 | 0.517 | 0.517 | 0.390 |
-| near_full | 0.835 | 0.835 | 0.805 | 0.733 |
-| swirl | 0.610 | 0.042 | 0.492 | 0.011 |
-| radial_spokes | 0.995 | 0.995 | 0.864 | 0.768 |
-| shot_grid | 0.912 | 0.872 | 0.306 | 0.257 |
-| crescent | 0.995 | 0.995 | 0.785 | 0.687 |
-| half_wafer | 0.995 | 0.995 | 0.807 | 0.791 |
-| wedge | 0.995 | 0.995 | 0.814 | 0.744 |
-| comet | 0.995 | 0.995 | 0.678 | 0.478 |
-| edge_scratch | 0.995 | 0.995 | 0.799 | 0.663 |
-| lift_pin | 0.705 | 0.640 | 0.434 | 0.386 |
-| bullseye | 0.995 | 0.995 | 0.995 | 0.995 |
-| gradient | 0.995 | 0.995 | 0.987 | 0.995 |
-| slip_lines | 0.995 | 0.995 | 0.618 | 0.521 |
-| double_ring | 0.995 | 0.995 | 0.895 | 0.829 |
+| Class         | Box AP50 | Mask AP50 | Box AP50-95 | Mask AP50-95 |
+| ------------- | -------- | --------- | ----------- | ------------ |
+| center        | 0.795    | 0.795     | 0.662       | 0.637        |
+| donut         | 0.855    | 0.596     | 0.783       | 0.495        |
+| edge_ring     | 0.995    | 0.995     | 0.895       | 0.544        |
+| edge_loc      | 0.912    | 0.912     | 0.746       | 0.770        |
+| scratch       | 0.995    | 0.995     | 0.864       | 0.821        |
+| random        | 0.816    | 0.745     | 0.809       | 0.745        |
+| loc           | 0.715    | 0.517     | 0.517       | 0.390        |
+| near_full     | 0.835    | 0.835     | 0.805       | 0.733        |
+| swirl         | 0.610    | 0.042     | 0.492       | 0.011        |
+| radial_spokes | 0.995    | 0.995     | 0.864       | 0.768        |
+| shot_grid     | 0.912    | 0.872     | 0.306       | 0.257        |
+| crescent      | 0.995    | 0.995     | 0.785       | 0.687        |
+| half_wafer    | 0.995    | 0.995     | 0.807       | 0.791        |
+| wedge         | 0.995    | 0.995     | 0.814       | 0.744        |
+| comet         | 0.995    | 0.995     | 0.678       | 0.478        |
+| edge_scratch  | 0.995    | 0.995     | 0.799       | 0.663        |
+| lift_pin      | 0.705    | 0.640     | 0.434       | 0.386        |
+| bullseye      | 0.995    | 0.995     | 0.995       | 0.995        |
+| gradient      | 0.995    | 0.995     | 0.987       | 0.995        |
+| slip_lines    | 0.995    | 0.995     | 0.618       | 0.521        |
+| double_ring   | 0.995    | 0.995     | 0.895       | 0.829        |
 
 ## Discussion and future work
 

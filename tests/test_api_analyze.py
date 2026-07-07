@@ -1,10 +1,14 @@
+from types import SimpleNamespace
+
 import numpy as np
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from scripts.api.main import create_app
 from scripts.api.routers.analyze import (
     analysis_cache,
     dot_sinogram,
+    image_artifacts,
     sinogram_angles,
     sinogram_grid,
 )
@@ -28,6 +32,19 @@ def test_dot_sinogram_shape() -> None:
 
 def test_dot_sinogram_empty_dots() -> None:
     assert dot_sinogram(np.zeros((0, 2))).max() == 0.0
+
+
+def test_image_artifacts_dots_override() -> None:
+    # A KLARF ingest supplies exact dots, skipping pixel re-extraction
+    def predict(image: np.ndarray, verbose: bool) -> list:
+        return [SimpleNamespace(masks=None)]
+
+    dots = np.array([[0.1, -0.2]])
+    image = Image.new("RGB", (64, 64), "white")
+    artifacts = image_artifacts(image, SimpleNamespace(predict=predict), dots=dots)
+
+    assert artifacts["dots"] is dots
+    assert artifacts["detections"] == []
 
 
 def test_analyze_cache_hit_skips_model() -> None:

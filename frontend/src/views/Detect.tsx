@@ -139,6 +139,32 @@ const Detect = () => {
 		}
 	}, [analysis.data]);
 
+	// A KLARF upload carries its own die pitch and wafer size — apply them to
+	// the what-if controls once per file, leaving later manual tweaks alone.
+	// Runs after the loadedFor effect so the currency check sees fresh data.
+	const klarfApplied = useRef<File | null>(null);
+	useEffect(() => {
+		const meta = analysis.data?.klarf;
+		if (
+			!file ||
+			!meta ||
+			loadedFor.current.file !== file ||
+			klarfApplied.current === file
+		) {
+			return;
+		}
+		klarfApplied.current = file;
+
+		setDieMm(Math.min(dieMmMax, Math.max(dieMmMin, meta.die_mm)));
+		if (waferPresets.includes(meta.wafer_radius_mm)) {
+			setWaferPreset(String(meta.wafer_radius_mm));
+		} else {
+			setWaferPreset("other");
+			setCustomRadiusInput(String(meta.wafer_radius_mm));
+			setCustomRadius(meta.wafer_radius_mm);
+		}
+	}, [analysis.data, file]);
+
 	const uploadPreview = useMemo(
 		() => (file ? URL.createObjectURL(file) : ""),
 		[file],
@@ -157,7 +183,13 @@ const Detect = () => {
 		data !== null &&
 		loadedFor.current.stem === stem &&
 		loadedFor.current.file === file;
-	const previewUrl = file ? uploadPreview : waferImageUrl(stem);
+	// A KLARF upload has no pixels to preview — the wafer map arrives rendered
+	// in the analysis response
+	const previewUrl = file
+		? file.type.startsWith("image/")
+			? uploadPreview
+			: ""
+		: waferImageUrl(stem);
 	const summary = data?.wafer_summary;
 	const lossValue = useCountUp(summary?.total_loss_dollars ?? 0);
 	const yieldValue = useCountUp((summary?.yield ?? 0) * 100);
@@ -339,7 +371,27 @@ const Detect = () => {
 								</button>
 							))}
 						</div>
-						<div className="ml-auto flex items-center gap-2">
+						<input
+							ref={fileRef}
+							type="file"
+							accept="image/*,.klarf"
+							className="hidden"
+							onChange={(event: ChangeEvent<HTMLInputElement>) =>
+								onUpload(event.target.files?.[0])
+							}
+						/>
+						<button
+							onClick={() => fileRef.current?.click()}
+							title="Upload a wafer map image or a KLARF defect file"
+							className={`ml-auto ${buttonPrimary}`}>
+							<span className="flex items-center gap-2">
+								<FaUpload size={12} />
+								Upload image / KLARF
+							</span>
+						</button>
+					</div>
+
+					<div className="flex flex-wrap items-center justify-end gap-2">
 							<button
 								onClick={onDownloadWafer}
 								disabled={!data || !dataIsCurrent}
@@ -347,7 +399,7 @@ const Detect = () => {
 								className={buttonGhost}>
 								<span className="flex items-center gap-2">
 									<FaImage size={12} />
-									Wafer PNG
+									Export detections
 								</span>
 							</button>
 							<button
@@ -370,25 +422,7 @@ const Detect = () => {
 									{exporting === "pdf" ? "Rendering…" : "Export report"}
 								</span>
 							</button>
-							<input
-								ref={fileRef}
-								type="file"
-								accept="image/*"
-								className="hidden"
-								onChange={(event: ChangeEvent<HTMLInputElement>) =>
-									onUpload(event.target.files?.[0])
-								}
-							/>
-							<button
-								onClick={() => fileRef.current?.click()}
-								className={buttonPrimary}>
-								<span className="flex items-center gap-2">
-									<FaUpload size={12} />
-									Upload wafer
-								</span>
-							</button>
 						</div>
-					</div>
 
 					<div
 						onDragOver={(event: DragEvent<HTMLDivElement>) =>
@@ -430,18 +464,21 @@ const Detect = () => {
 										dimImage={view === "dots"}
 										scanning={analysis.loading}
 									/>
-								) : (
+								) : previewUrl ? (
 									<WaferCanvas
 										imageUrl={previewUrl}
 										overlays={[]}
 										scanning={analysis.loading}
 									/>
+								) : (
+									<div className="aspect-square w-full animate-pulse rounded-full bg-neutral-900/5 dark:bg-white/5" />
 								)}
 							</div>
 						)}
 					</div>
 					<p className={subtle}>
-						Drop an image onto the wafer to analyze it, or pick one below.
+						Drop a wafer image or KLARF defect file onto the wafer to analyze
+						it, or pick one below.
 					</p>
 
 					<div className={card}>

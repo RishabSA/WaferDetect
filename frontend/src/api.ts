@@ -83,6 +83,13 @@ export interface AnalyzeParams {
 	wafer_radius_mm: number;
 }
 
+export interface KlarfMeta {
+	die_mm: number;
+	wafer_radius_mm: number;
+	wafer_id: string;
+	classes: string[];
+}
+
 export interface AnalyzeResponse {
 	stem: string | null;
 	image: string;
@@ -93,6 +100,7 @@ export interface AnalyzeResponse {
 	radial: number[];
 	zones: { center: number; mid: number; edge: number };
 	ground_truth: string[] | null;
+	klarf: KlarfMeta | null;
 }
 
 export interface ParetoResponse {

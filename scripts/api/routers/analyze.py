@@ -11,7 +11,7 @@ from ultralytics import YOLO
 
 from scripts.analytics.diagnosis import diagnose, kb_path, load_knowledge_base
 from scripts.analytics.diegrid import radial_yield, zone_yields
-from scripts.api.klarf import klarf_text
+from scripts.api.klarf import is_klarf, klarf_text, parse_klarf, render_dots
 from scripts.api.plots import image_png, sinogram_png
 from scripts.api.report import report_pdf
 from scripts.baselines.classical import dot_coordinates
@@ -92,9 +92,14 @@ def dot_sinogram(dots: np.ndarray) -> np.ndarray:
     return radon(grid, theta=angles)
 
 
-def image_artifacts(image: Image.Image, model: YOLO) -> dict:
-    # Everything derived from the image alone — independent of the what-if parameters
-    dots = dot_coordinates(np.asarray(image.convert("L")))
+def image_artifacts(
+    image: Image.Image, model: YOLO, dots: np.ndarray | None = None
+) -> dict:
+    # Everything derived from the image alone — independent of the what-if
+    # parameters. A KLARF ingest passes its exact dot set instead of
+    # re-extracting pixel centers from the rendered image.
+    if dots is None:
+        dots = dot_coordinates(np.asarray(image.convert("L")))
     names = load_class_names(classes_file)
 
     result = model.predict(np.asarray(image), verbose=False)[0]
@@ -157,8 +162,25 @@ async def resolve_artifacts(
         analysis_cache.move_to_end(key)
         return analysis_cache[key]
 
-    source = image_path if stem else io.BytesIO(payload)
-    artifacts = image_artifacts(Image.open(source).convert("RGB"), model)
+    if not stem and is_klarf(payload):
+        # KLARF ingest: rebuild the wafer map from the defect list, then run
+        # the normal pipeline on the rendered image
+        try:
+            parsed = parse_klarf(payload.decode())
+        except (ValueError, IndexError) as error:
+            raise HTTPException(422, f"KLARF parse failed: {error}") from error
+
+        image = render_dots(parsed["dots"]).convert("RGB")
+        artifacts = image_artifacts(image, model, dots=parsed["dots"])
+        artifacts["klarf"] = {
+            "die_mm": parsed["die_mm"],
+            "wafer_radius_mm": parsed["wafer_radius_mm"],
+            "wafer_id": parsed["wafer_id"],
+            "classes": parsed["classes"],
+        }
+    else:
+        source = image_path if stem else io.BytesIO(payload)
+        artifacts = image_artifacts(Image.open(source).convert("RGB"), model)
 
     analysis_cache[key] = artifacts
     if len(analysis_cache) > cache_size:
@@ -202,6 +224,9 @@ async def analyze(
         names = load_class_names(classes_file)
         instances = load_label_file(raw_labels_dir / f"{stem}.txt")
         ground_truth = [names[instance.class_id] for instance in instances]
+    elif artifacts.get("klarf") and artifacts["klarf"]["classes"]:
+        # an ingested KLARF's own class labels play the role of ground truth
+        ground_truth = artifacts["klarf"]["classes"]
 
     return {
         "stem": stem or None,
@@ -213,6 +238,7 @@ async def analyze(
         "radial": radial_yield(dots, die_mm, wafer_radius_mm=wafer_radius_mm),
         "zones": zone_yields(dots, die_mm, wafer_radius_mm),
         "ground_truth": ground_truth,
+        "klarf": artifacts.get("klarf"),
     }
 
 
