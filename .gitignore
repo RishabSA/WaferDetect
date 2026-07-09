@@ -3,6 +3,7 @@ docs/
 runs/
 waferdetect_runs/
 .superpowers/
+poster/video/
 
 *.pkl
 *.pt
