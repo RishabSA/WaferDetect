@@ -82,20 +82,94 @@ same pipeline, so WaferDetect can operate directly on fab inspection-tool output
 
 ## Methodology
 
-- **Dataset** — 580 real, annotated silicon wafer maps (640×640: white disk, black dots =
-  failing dies), spanning 21 defect pattern classes (center, donut, edge_ring, scratch,
-  swirl, shot_grid, lift_pin, slip_lines, …) with polygon instance labels in YOLO
-  segmentation format (`<class_id> x1 y1 x2 y2 ...`, normalized coordinates). Includes a
-  four-level size axis for edge scratches and 100 multi-defect ("combo") wafers with 2–4
-  overlapping patterns. Frozen, stratified 406/87/87 train/val/test split (seed 42) — the
-  87-wafer test split is the fixed measuring stick for every model in the project.
-- **Model architecture** — YOLO26x segmentation model, a single-pass detector with a
-  convolutional backbone that extracts features at multiple scales as input to parallel
-  heads that predict each defect's class, box, and pixel mask together, outlining every
-  defect.
-- **Analysis** — each detection queries a root-cause knowledge base for the manufacturing
-  error, recommended action, and the yield model used to quantify failed dies and dollars
-  lost.
+### Dataset
+
+580 real, annotated silicon wafer maps (640×640: white disk, black dots = failing dies),
+spanning 21 defect pattern classes (center, donut, edge_ring, scratch, swirl, shot_grid,
+lift_pin, slip_lines, …) with polygon instance labels in YOLO segmentation format
+(`<class_id> x1 y1 x2 y2 ...`, normalized coordinates). Includes a four-level size axis
+for edge scratches and 100 multi-defect ("combo") wafers with 2–4 overlapping patterns.
+`scripts.perception.dataset` builds the YOLO directory layout and a frozen, stratified
+406/87/87 train/val/test split (seed 42) — the 87-wafer test split is the fixed measuring
+stick for every model in the project.
+
+### Model architecture — YOLO26x-seg
+
+YOLO26 is a single-pass, anchor-free instance-segmentation network; WaferDetect
+fine-tunes the largest (x) variant.
+
+- **Backbone + neck** — a convolutional backbone extracts feature maps at strides
+  8/16/32, and an FPN/PAN-style neck fuses them top-down and bottom-up, so a
+  wafer-spanning ring and a pixel-thin scratch both survive to the prediction heads at an
+  appropriate resolution.
+- **Detection heads** — decoupled heads at each scale predict a class score and box per
+  location. YOLO26 is end-to-end NMS-free: it is trained with a one-to-one assignment so
+  the raw outputs are final detections, with no non-maximum-suppression post-processing
+  step, and it drops the distribution-focal-loss (DFL) box head of earlier YOLOs. Its
+  small-target-aware label assignment (STAL) and progressive loss balancing (ProgLoss)
+  matter here — the tiny edge-scratch classes are exactly the small-object regime they
+  target.
+- **Mask branch** — segmentation is prototype-based (YOLACT-style): a prototype head
+  emits a small bank of full-resolution mask basis images, each detection predicts a
+  vector of mixing coefficients, and the instance mask is the sigmoid of that linear
+  combination cropped to the detection's box. The mask contour, as a normalized polygon,
+  is what every downstream analytic consumes.
+
+### Training
+
+Fine-tuned from the pretrained `yolo26x-seg.pt` checkpoint for up to 200 epochs at
+640×640 with early stopping (patience 50) and seed 42; best-epoch weights are selected on
+the validation split (`scripts.perception.train`). Augmentation is tailored to wafer
+maps: mosaic is disabled (a wafer map is a single physical disc — tiling four crops
+produces non-physical inputs), rotation is free over ±180° with both flips at 0.5 (every
+defect pattern is valid at any orientation), scale jitter is mild (0.1), and all HSV
+color augmentation is zeroed because the maps are effectively binary.
+
+### Evaluation
+
+`scripts.perception.evaluate` runs the fine-tuned model over the frozen test split and
+reports box/mask mAP50 and mAP50-95 plus per-class AP, then re-evaluates two sliced
+subsets under the same protocol: the multi-defect combo wafers and the tiny edge
+scratches — the two designed stress cases. Metrics land in `runs/eval/<name>/` as
+`metrics.json` and `report.md`.
+
+### Analysis pipeline
+
+One `POST /api/analyze` call (a dataset wafer, an uploaded image, or an uploaded KLARF
+file — sniffed by content) runs, in order:
+
+1. **Dot extraction** — every dark pixel inside the wafer disc becomes a failing-die dot
+   in unit-disc wafer coordinates. For a KLARF upload, the file's die-indexed defect list
+   (`XINDEX`/`YINDEX` plus µm offsets) is converted to the same coordinates directly and
+   the wafer map is re-rendered from it.
+2. **Segmentation** — a single YOLO26x-seg forward pass returns class, confidence, and
+   normalized mask polygon for every defect instance.
+3. **Radon sinogram** — the dots are rastered to a 128×128 grid and Radon-transformed at
+   180 angles; line-like patterns collapse into bright sinogram bins, which is also how
+   scratch orientation is measured.
+4. **Die grid** — a virtual grid of `die_mm` squares is laid over the wafer (3 mm edge
+   exclusion, worst-corner containment test), and a die is failed if any dot lands in it.
+5. **Yield models** — the failed fraction is inverted through the Poisson zero-count
+   model Y = e^(−A·D₀) to estimate the defect density D₀; the cluster factor α comes from
+   an 8×8 quadrat method-of-moments fit (α = mean²/(variance − mean)); the
+   negative-binomial (Stapper) model Y = (1 + A·D₀/α)^(−α) captures the yield benefit of
+   clustering.
+6. **Dollar attribution** — the background failure rate is measured on dies outside every
+   detected polygon, and each detection is billed only for its excess failed dies above
+   that background, times the per-die value — so a defect region never gets charged for
+   failures that would have happened anyway.
+7. **Scratch kinematics** — dots inside a scratch polygon are fit three ways: SVD line
+   deviation for straightness, a Kasa least-squares circle fit for curvature, and a
+   chord-to-radius test for arc-ness, yielding a handling_linear / cmp_rotational /
+   off_axis_arc verdict plus the entry bearing of the rim-most point.
+8. **Root-cause lookup** — each class queries a knowledge base
+   (`scripts/analytics/knowledge_base.yaml`) for the physical mechanism, responsible
+   process steps, tool families, severity weight, and recommended corrective action.
+
+Die size (6 mm), per-die value ($25), and wafer radius (150 mm) are what-if parameters on
+every request; steps 1–3 are cached per wafer (LRU keyed by stem or upload content hash),
+so re-running the economics with new parameters skips dot extraction and inference. The
+KLARF, PDF-report, and wafer-PNG exports are rendered from the same cached artifacts.
 
 ## Results
 
