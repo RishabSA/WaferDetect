@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  <img src="poster/Rishab Alagharu - WaferDetect GHP 63 CS Poster.jpeg" alt="WaferDetect GHP 63 computer science poster" width="900" />
+  <img src="resources/WaferDetectDemo.gif" alt="Animated demo of the WaferDetect dashboard analyzing a wafer map with defect detections and analytics" width="900" />
 </p>
 
 <p align="center">
-  <img src="resources/WaferDetect_Demo.jpg" alt="WaferDetect dashboard showing wafer defect detections and analytics" width="900" />
+  <img src="poster/Rishab Alagharu - WaferDetect GHP 63 CS Poster.jpeg" alt="WaferDetect GHP 63 computer science poster" width="900" />
 </p>
 
 ---
