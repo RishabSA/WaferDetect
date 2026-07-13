@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>An intelligent, autonomous, and economic wafer-map defect-detection platform for semiconductor fabs</strong><br />
-  WaferDetect is an AI-powered wafer-map defect intelligence platform for semiconductor fabs that segments failure patterns in silicon wafers with AI, diagnoses their root causes and possible errors in the manufacturing process, and quantifies the wafer map die yield loss in dollars.
+  WaferDetect is an AI-powered wafer-map defect intelligence platform for semiconductor fabs that segments failure patterns in silicon wafers, diagnoses their root causes and potential errors in the manufacturing process, and quantifies the wafer-map die yield loss in dollars.
 </p>
 
 <p align="center">

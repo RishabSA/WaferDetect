@@ -1,7 +1,7 @@
 {
 	"name": "WaferDetect — Wafer-Map Defect Intelligence",
 	"short_name": "WaferDetect",
-	"description": "WaferDetect is an AI-powered wafer-map defect intelligence platform for semiconductor fabs that segments failure patterns in silicon wafers with AI, diagnoses their root causes and possible errors in the manufacturing process, and quantifies the wafer map die yield loss in dollars.",
+	"description": "WaferDetect is an AI-powered wafer-map defect intelligence platform for semiconductor fabs that segments failure patterns in silicon wafers, diagnoses their root causes and potential errors in the manufacturing process, and quantifies the wafer-map die yield loss in dollars.",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#0b0b11",
