@@ -4,6 +4,7 @@ runs/
 waferdetect_runs/
 .superpowers/
 poster/video/
+poster/brainstorming
 
 *.pkl
 *.pt
